@@ -19,6 +19,7 @@ _k7ctl() {
         'volume-max:set PipeWire'"'"'s K7 volume to 100%'
         'setup:rates enable + default output + volume-max'
         'firmware:show the firmware version and how to update it'
+        'gui:open the FiiO K7 window'
         'tray:system tray icon'
     )
     if (( CURRENT == 2 )); then

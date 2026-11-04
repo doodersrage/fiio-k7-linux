@@ -12,8 +12,10 @@ FiiO's software for the K7 DAC/headphone amp is Windows-only. This project gives
 - **Headphone EQ** with profiles for thousands of headphones from [AutoEQ](https://github.com/jaakkopasanen/AutoEq).
 - **Keep awake**: stops the start of sounds being cut off after the K7 has been idle.
 - **Latency presets** against crackles at high sample rates (or for low-latency gaming).
-- **System tray icon** (KDE, GNOME with the AppIndicator extension, and others) with all of the above.
+- **A settings window** (`k7ctl gui`, or "FiiO K7" in your app launcher) and a **system tray icon** with all of the above.
 - Output for **Waybar, Polybar** and scripts (JSON); bash, zsh and fish completions; a man page.
+
+![The FiiO K7 window](docs/window.png)
 
 ## What the K7 does and doesn't expose over USB
 
@@ -65,7 +67,7 @@ pipx install "k7ctl[tray] @ git+https://github.com/doodersrage/fiio-k7-linux"   
 ```
 
 Needs Python 3.9+, PipeWire with WirePlumber (the default on current Fedora, Ubuntu, Debian, Arch), and
-for the tray icon PyQt6 or PySide6. The EQ needs a systemd user session (standard on all of the above).
+for the window and tray icon PyQt6 or PySide6. The EQ needs a systemd user session (standard on all of the above).
 No root access or udev rules needed: everything is read from `/proc` and `/sys` or done through PipeWire as your user.
 
 ## Quick start
@@ -73,7 +75,8 @@ No root access or udev rules needed: everything is read from `/proc` and `/sys` 
 ```sh
 k7ctl            # status
 k7ctl setup      # bit-perfect setup: native sample rates, K7 as default output, PipeWire volume 100%
-k7ctl tray       # tray icon (tick "Start at login" in its menu to keep it)
+k7ctl gui        # the window (also "FiiO K7" in your app launcher)
+k7ctl tray       # tray icon: click it to open the window; "Start at login" is in its menu
 ```
 
 > **Turn the K7's knob down before `k7ctl setup`.** If PipeWire's volume for the K7 was below 100%, the setup raises it to 100%,
@@ -94,7 +97,8 @@ k7ctl tray       # tray icon (tick "Start at login" in its menu to keep it)
 | `k7ctl eq import <file>` | Import an Equalizer APO / `ParametricEQ.txt` file. |
 | `k7ctl eq on [profile]` / `off` | Turn the EQ on or off. `eq list`, `eq status`, `eq remove` manage profiles. |
 | `k7ctl firmware` | Installed firmware version and how to update it. |
-| `k7ctl tray` | System tray icon. |
+| `k7ctl gui` | The settings window. |
+| `k7ctl tray` | System tray icon; click it to open the window. Without a system tray, opens the window. |
 
 See `man k7ctl` for everything.
 
@@ -136,7 +140,7 @@ k7ctl eq get "Sennheiser HD 600" --source oratory1990 --on
 k7ctl eq off
 ```
 
-Or in the tray: **Headphone EQ → Find my headphones…**
+Or in the window: type your headphones in **Headphone EQ**, pick a result and **Download and turn EQ on**.
 
 Turning the EQ on adds an output called **FiiO K7 + EQ** and makes it the default; it processes the sound and sends it
 to the K7. Turning it off makes the K7 the default again. With EQ on, playback is processed, so it is **not

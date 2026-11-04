@@ -11,6 +11,9 @@
 - **Keep awake**: `k7ctl keepawake on` stops WirePlumber suspending the K7 when idle, so the start of
   sounds isn't cut off. Restarting WirePlumber keeps the K7 (or its EQ) as the default output.
 - **Latency presets**: `k7ctl latency stable|low-latency|default`, applied live.
+- **Settings window**: `k7ctl gui` (and "FiiO K7" in the app launcher) with the status, the streams playing to the K7,
+  every setting, and AutoEQ search and download. The tray opens it on click; slow work (WirePlumber restarts,
+  downloads) runs in the background, so neither the window nor the tray freezes.
 - **Status bars**: `k7ctl status --format waybar|short [--watch]`, with example Waybar and Polybar configs.
 - Bash, zsh and fish completions; a man page.
 - Packages for Debian/Ubuntu (.deb), Fedora (.rpm) and Arch, built and tested in CI.

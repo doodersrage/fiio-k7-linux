@@ -12,6 +12,7 @@ out=$(k7ctl status 2>&1) && exit 1
 echo "$out" | grep -q "No FiiO K7"
 if echo "$out" | grep -q Traceback; then exit 1; fi
 for f in \
+    /usr/share/applications/k7ctl.desktop \
     /usr/share/applications/k7ctl-tray.desktop \
     /usr/share/metainfo/io.github.doodersrage.k7ctl.metainfo.xml \
     /usr/share/bash-completion/completions/k7ctl \
@@ -32,10 +33,14 @@ packaged_files() {
 packaged_files | grep -q '/usr/share/man/man1/k7ctl\.1'
 packaged_files | grep -q '/usr/share/doc/k7ctl/waybar/config\.jsonc'
 if command -v desktop-file-validate >/dev/null; then
-    desktop-file-validate /usr/share/applications/k7ctl-tray.desktop
+    desktop-file-validate /usr/share/applications/k7ctl.desktop /usr/share/applications/k7ctl-tray.desktop
 fi
-# the tray module imports (offscreen) with the installed Qt binding
+# the tray and window import with the installed Qt binding, and the window opens (offscreen)
 QT_QPA_PLATFORM=offscreen "$PY" -c "
-from k7ctl import tray
-app = tray.QApplication([])
-print('tray ok:', tray.QApplication.__module__)"
+from k7ctl import qt, tray, window
+app = qt.make_app()
+w = window.Window()
+w.show()
+app.processEvents()
+w.shutdown()
+print('gui ok:', qt.BINDING)"

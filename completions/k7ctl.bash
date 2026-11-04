@@ -5,7 +5,7 @@ _k7ctl() {
         cur=${COMP_WORDS[COMP_CWORD]}; prev=${COMP_WORDS[COMP_CWORD-1]}
         words=("${COMP_WORDS[@]}"); cword=$COMP_CWORD
     }
-    local cmds="status rates latency keepawake eq volume-max setup firmware tray"
+    local cmds="status rates latency keepawake eq volume-max setup firmware gui tray"
     local cmd=${words[1]}
 
     if [ "$cword" -eq 1 ]; then

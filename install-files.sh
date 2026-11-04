@@ -14,6 +14,7 @@ files="
 completions/k7ctl.bash          usr/share/bash-completion/completions/k7ctl
 completions/_k7ctl              usr/share/zsh/site-functions/_k7ctl
 completions/k7ctl.fish          usr/share/fish/vendor_completions.d/k7ctl.fish
+data/k7ctl.desktop              usr/share/applications/k7ctl.desktop
 data/k7ctl-tray.desktop         usr/share/applications/k7ctl-tray.desktop
 data/io.github.doodersrage.k7ctl.metainfo.xml usr/share/metainfo/io.github.doodersrage.k7ctl.metainfo.xml
 docs/k7ctl.1                    usr/share/man/man1/k7ctl.1

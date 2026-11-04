@@ -363,6 +363,11 @@ def cmd_tray(args) -> int:
     return tray_main()
 
 
+def cmd_gui(args) -> int:
+    from .window import main as window_main
+    return window_main()
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="k7ctl", description="FiiO K7 status and setup for Linux")
     p.add_argument("--version", action="version", version=f"k7ctl {__version__}")
@@ -424,7 +429,10 @@ def build_parser() -> argparse.ArgumentParser:
     f = sub.add_parser("firmware", help="show the firmware version and how to update it")
     f.set_defaults(func=cmd_firmware)
 
-    t = sub.add_parser("tray", help="system tray icon")
+    g = sub.add_parser("gui", help="open the FiiO K7 window")
+    g.set_defaults(func=cmd_gui)
+
+    t = sub.add_parser("tray", help="system tray icon (click it to open the window)")
     t.set_defaults(func=cmd_tray)
     return p
 

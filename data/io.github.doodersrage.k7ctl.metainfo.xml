@@ -8,7 +8,7 @@
   </developer>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
-  <launchable type="desktop-id">k7ctl-tray.desktop</launchable>
+  <launchable type="desktop-id">k7ctl.desktop</launchable>
   <description>
     <p>
       FiiO only makes software for the K7 DAC and headphone amplifier for Windows.
@@ -24,10 +24,16 @@
       <li>Show the installed firmware version and how to update it</li>
     </ul>
     <p>
-      It comes with a system tray icon and a command line tool (k7ctl) with JSON output for scripts and status bars.
+      It comes with a settings window, a system tray icon and a command line tool (k7ctl) with JSON output for scripts and status bars.
       No root access is needed.
     </p>
   </description>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Status, bit-perfect settings and headphone EQ</caption>
+      <image>https://raw.githubusercontent.com/doodersrage/fiio-k7-linux/main/docs/window.png</image>
+    </screenshot>
+  </screenshots>
   <url type="homepage">https://github.com/doodersrage/fiio-k7-linux</url>
   <url type="bugtracker">https://github.com/doodersrage/fiio-k7-linux/issues</url>
   <url type="vcs-browser">https://github.com/doodersrage/fiio-k7-linux</url>
@@ -55,7 +61,7 @@
   <releases>
     <release version="0.2.0" date="2026-11-04">
       <description>
-        <p>Resampling diagnosis, headphone EQ, keep-awake, latency presets, status bar output, shell completions and a man page.</p>
+        <p>Settings window, resampling diagnosis, headphone EQ, keep-awake, latency presets, status bar output, shell completions and a man page.</p>
       </description>
     </release>
     <release version="0.1.0" date="2026-11-04">

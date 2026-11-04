@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=FiiO K7
+GenericName=DAC settings
+Comment=FiiO K7 status, bit-perfect playback settings and headphone EQ
+Exec=k7ctl gui
+Icon=audio-card
+Terminal=false
+Categories=AudioVideo;Audio;Mixer;
+Keywords=fiio;k7;dac;sample rate;bit-perfect;eq;equalizer;autoeq;headphones;
+StartupNotify=true
+Actions=tray;
+
+[Desktop Action tray]
+Name=Show tray icon
+Exec=k7ctl tray

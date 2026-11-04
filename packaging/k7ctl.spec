@@ -54,6 +54,7 @@ QT_QPA_PLATFORM=offscreen %{python3} -m pytest -q -p no:cacheprovider tests
 %{_bindir}/k7ctl
 %{_mandir}/man1/k7ctl.1*
 %{python3_sitelib}/k7ctl/
+%{_datadir}/applications/k7ctl.desktop
 %{_datadir}/applications/k7ctl-tray.desktop
 %{_metainfodir}/io.github.doodersrage.k7ctl.metainfo.xml
 %{_datadir}/bash-completion/completions/k7ctl
@@ -64,6 +65,7 @@ QT_QPA_PLATFORM=offscreen %{python3} -m pytest -q -p no:cacheprovider tests
 * Wed Nov 04 2026 Robert McDowell <doodersrage@gmail.com> - 0.2.0-1
 - Show which app keeps the K7 at another rate and which streams are resampled
 - keepawake, latency presets, headphone EQ (AutoEQ), status bar output
+- Settings window (k7ctl gui); the tray no longer freezes during changes
 - Shell completions and man page
 
 * Wed Nov 04 2026 Robert McDowell <doodersrage@gmail.com> - 0.1.0-1

@@ -67,6 +67,7 @@ jobs:
           sudo apt-get remove -y k7ctl
           ! command -v k7ctl
           test ! -e /usr/share/applications/k7ctl-tray.desktop
+          test ! -e /usr/share/applications/k7ctl.desktop
       - uses: actions/upload-artifact@v4
         with:
           name: deb
@@ -92,6 +93,7 @@ jobs:
           dnf remove -y k7ctl
           ! command -v k7ctl
           test ! -e /usr/share/applications/k7ctl-tray.desktop
+          test ! -e /usr/share/applications/k7ctl.desktop
       - uses: actions/upload-artifact@v4
         with:
           name: rpm
@@ -112,6 +114,7 @@ jobs:
           pacman -R --noconfirm k7ctl
           ! command -v k7ctl
           test ! -e /usr/share/applications/k7ctl-tray.desktop
+          test ! -e /usr/share/applications/k7ctl.desktop
       - uses: actions/upload-artifact@v4
         with:
           name: arch

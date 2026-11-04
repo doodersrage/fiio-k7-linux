@@ -1,5 +1,5 @@
 # fish completion for k7ctl
-set -l cmds status rates latency keepawake eq volume-max setup firmware tray
+set -l cmds status rates latency keepawake eq volume-max setup firmware gui tray
 set -l eqacts status list search get import remove on off
 
 function __k7ctl_profiles
@@ -19,6 +19,7 @@ complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a eq -d 'Headphone
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a volume-max -d "Set PipeWire's K7 volume to 100%"
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a setup -d 'Bit-perfect setup in one go'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a firmware -d 'Firmware version and how to update'
+complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a gui -d 'Open the FiiO K7 window'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a tray -d 'System tray icon'
 
 complete -c k7ctl -n "__fish_seen_subcommand_from status" -l format -x -a 'text json waybar short' -d 'Output format'
