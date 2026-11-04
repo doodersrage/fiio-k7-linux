@@ -499,6 +499,8 @@ class Window(W.QMainWindow):
             self.show_curve()
 
     def update_enabled(self):
+        if self.closed:
+            return
         busy = self.acting > 0
         connected = bool(self.snap and self.snap.connected)
         has_profiles = self.profile_combo.currentData() is not None
@@ -721,6 +723,10 @@ class Window(W.QMainWindow):
             return
         self.closed = True
         self.timer.stop()
+        self.banner_timer.stop()
+        # no more callbacks into this window while Qt tears its widgets down
+        for w in self.findChildren(QtCore.QObject):
+            w.blockSignals(True)
         if self.own_worker:
             self.worker.shutdown()
 

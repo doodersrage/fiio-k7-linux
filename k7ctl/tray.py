@@ -266,6 +266,8 @@ class Tray:
         self.timer.stop()
         if self.window:
             self.window.shutdown()
+        self.menu.blockSignals(True)
+        self.tray.hide()
         self.worker.shutdown()
 
 

@@ -32,6 +32,32 @@ class SyncWorker:
         pass
 
 
+@pytest.fixture(autouse=True)
+def _delete_qt_widgets():
+    """Destroy every window a test made, right after it, instead of whenever the
+    garbage collector gets to it (which crashed PyQt on Python 3.11 in CI)."""
+    yield
+    try:
+        from k7ctl.qt import QtWidgets
+    except ImportError:
+        return
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        return
+    for w in app.topLevelWidgets():
+        shutdown = getattr(w, "shutdown", None)
+        if callable(shutdown):
+            shutdown()
+        w.blockSignals(True)
+        w.close()
+        w.deleteLater()
+    from k7ctl.qt import QtCore
+    QtCore.QCoreApplication.sendPostedEvents(None, QtCore.QEvent.Type.DeferredDelete)
+    app.processEvents()
+    import gc
+    gc.collect()
+
+
 @pytest.fixture
 def sync_worker():
     return SyncWorker()

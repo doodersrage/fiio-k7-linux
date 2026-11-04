@@ -90,8 +90,13 @@ class Worker(QtCore.QObject):
         self.pool.shutdown(wait=True, cancel_futures=True)
 
 
+_APP = None   # keeps the QApplication alive: if Python collects it, the next widget crashes
+
+
 def make_app() -> QtWidgets.QApplication:
+    global _APP
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
+    _APP = app
     app.setApplicationName("k7ctl")
     app.setApplicationDisplayName("k7ctl")
     app.setDesktopFileName("k7ctl")
