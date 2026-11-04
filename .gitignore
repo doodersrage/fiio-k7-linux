@@ -1,0 +1,8 @@
+pkg/
+src/
+*.pkg.tar.zst
+__pycache__/
+build/
+dist/
+*.egg-info/
+.pytest_cache/

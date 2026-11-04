@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=FiiO K7
+GenericName=DAC status
+Comment=Shows what the FiiO K7 is playing, in the system tray
+Exec=k7ctl tray
+Icon=audio-card
+Categories=AudioVideo;Audio;Settings;
+Keywords=fiio;k7;dac;sample rate;bit-perfect;

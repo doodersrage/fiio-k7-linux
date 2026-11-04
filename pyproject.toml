@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "k7ctl"
+dynamic = ["version"]
+description = "FiiO K7 DAC/amp status and bit-perfect setup for Linux (PipeWire)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = []
+
+[project.optional-dependencies]
+tray = ["PyQt6"]
+
+[project.scripts]
+k7ctl = "k7ctl.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/doodersrage/fiio-k7-linux"
+
+[tool.setuptools]
+packages = ["k7ctl"]
+
+[tool.setuptools.dynamic]
+version = {attr = "k7ctl.__version__"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
