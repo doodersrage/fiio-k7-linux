@@ -212,30 +212,37 @@ Applied immediately; saved in `~/.config/pipewire/pipewire.conf.d/51-k7ctl-laten
 
 ## DSD
 
-PipeWire plays PCM. For native DSD (DSF/DFF files sent to the DAC as DSD, not converted):
+The K7 plays DSD natively (DSD64 to DSD256): the DSD bits go to the DAC unchanged, not converted to PCM.
+**PipeWire can't send DSD to it**, so a player has to use the K7's ALSA device directly:
 
-- **`pw-dsdplay file.dsf`** (comes with PipeWire) plays a DSD file natively through PipeWire. *Not yet tested with the K7.*
-- **MPD**: send straight to the DAC with ALSA:
+| Route | Native DSD on the K7 |
+|---|---|
+| Player with direct ALSA output (`hw:CARD=K7,DEV=0`): MPD, Strawberry, DeaDBeeF, Audacious… | **Works** (tested) |
+| `pw-dsdplay` / PipeWire | Doesn't work: "no target node available", also with the K7 in the Pro Audio profile (tested with PipeWire 1.6, WirePlumber 0.5) |
 
-  ```
-  audio_output {
-      type            "alsa"
-      name            "FiiO K7 (direct, native DSD)"
-      device          "hw:CARD=K7,DEV=0"
-      dop             "no"
-      mixer_type      "none"
-      auto_resample   "no"
-      auto_format     "no"
-      auto_channels   "no"
-  }
-  ```
+**MPD** example:
 
-  `hw:` access is exclusive: if PipeWire is using the K7 at that moment, MPD reports "Device or resource busy". PipeWire
-  releases an idle device after a few seconds (unless keep-awake is on: turn it off if you use `hw:` output a lot).
-- Other players with a direct ALSA/"exclusive" output (Strawberry, DeaDBeeF, Audacious with the ALSA plugin) work the same
-  way with device `hw:CARD=K7,DEV=0`.
+```
+audio_output {
+    type            "alsa"
+    name            "FiiO K7 (direct, native DSD)"
+    device          "hw:CARD=K7,DEV=0"
+    dop             "no"
+    mixer_type      "none"
+    auto_resample   "no"
+    auto_format     "no"
+    auto_channels   "no"
+}
+```
 
-`k7ctl status` shows e.g. `DSD64 (2.822 MHz, native)` when DSD is playing.
+In other players, choose the ALSA output with device `hw:CARD=K7,DEV=0` and native DSD (not DoP, not "convert to PCM").
+
+- `hw:` access is exclusive: while a player has it, other apps can't play through the K7, and if PipeWire is using the K7
+  at that moment the player reports "Device or resource busy". PipeWire releases an idle K7 after a few seconds, unless
+  keep-awake is on: turn it off if you use direct output a lot.
+- `k7ctl status` and the window show e.g. `DSD64 (2.822 MHz, native)` while DSD is playing.
+- Quick check without a player: `aplay -D hw:CARD=K7,DEV=0 -t raw -f DSD_U32_BE -c 2 -r 88200 < file.raw` plays raw
+  DSD64 (88200 frames/s × 32 bits = 2.8224 MHz).
 
 ## Firmware updates
 
