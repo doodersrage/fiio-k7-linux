@@ -63,3 +63,33 @@ def test_tray_actions_run_on_worker(monkeypatch, xdg, sync_worker):
     t.a_rates.setChecked(False)
     assert calls == ["rates-off"] and len(sync_worker.jobs) > n
     t.shutdown()
+
+
+def test_tray_notifications(monkeypatch, xdg, sync_worker):
+    from k7ctl import settings
+    settings.set(notify_rate=True, notify_resample=True)
+    current = {"s": snap()}
+    monkeypatch.setattr(snapshot, "take", lambda *a, **k: current["s"])
+    app = qt.make_app()
+    t = tray.Tray(app, sync_worker)
+    shown = []
+    monkeypatch.setattr(t.tray, "showMessage", lambda title, text, *a: shown.append(text))
+
+    def playing(rate, streams):
+        k7 = device.K7(1, "K7", "FiiO K7", stream=device.Stream("running", "S32_LE", 2, rate))
+        sink = pipewire.Sink(53, "k7", "FiiO K7", 1.0, False, True, rate=rate, running=True,
+                             streams=streams)
+        return snap(k7, sink, allowed_rates=[44100, 48000])
+
+    current["s"] = playing(44100, [pipewire.Stream(1, "Strawberry", 44100, "S32LE", True)])
+    t.refresh()
+    current["s"] = playing(48000, [pipewire.Stream(2, "Firefox", 48000, "F32LE", True),
+                                   pipewire.Stream(1, "Strawberry", 44100, "S32LE", True)])
+    t.refresh()
+    assert any("Now playing 48 kHz" in m for m in shown)
+    assert any("Strawberry is 44.1 kHz" in m for m in shown)
+    n = len(shown)
+    t.refresh()                                   # nothing changed: no repeat
+    assert len(shown) == n
+    assert t.a_n_rate.isChecked() and t.a_n_res.isChecked()
+    t.shutdown()

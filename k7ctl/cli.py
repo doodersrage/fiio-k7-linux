@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
+import shutil
+import subprocess
 import sys
 import time
 
@@ -13,8 +17,11 @@ from .device import format_rate
 
 
 def _no_k7() -> int:
-    print("No FiiO K7 found. Is it plugged in and switched to USB input?\n"
-          "Check with: lsusb | grep -i fiio", file=sys.stderr)
+    name = device.display_name()
+    hint = ("Is it plugged in and switched to USB input?\nCheck with: lsusb | grep -i fiio"
+            if device.target_id() == device.DEFAULT_ID else
+            "Is it plugged in? See: k7ctl devices")
+    print(f"No {name} found. {hint}", file=sys.stderr)
     return 1
 
 
@@ -51,9 +58,9 @@ def status_lines(s: snapshot.Snapshot) -> list[str]:
             vol += " (muted)"
         lines.append(f"  PW volume:    {vol}")
         if sink.eq_is_default:
-            lines.append("  Default out:  FiiO K7 + EQ")
+            lines.append(f"  Default out:  {k7.name} + EQ")
         elif not sink.is_default:
-            lines.append("  Default out:  not the K7")
+            lines.append(f"  Default out:  not the {k7.name}")
     if s.allowed_rates is not None:
         lines.append(f"  PW rates:     {', '.join(format_rate(r) for r in s.allowed_rates)}")
     if s.latency:
@@ -86,7 +93,7 @@ def waybar_json(s: snapshot.Snapshot) -> str:
     if s.k7:
         tooltip = "\n".join(status_lines(s) + [f"! {t}" for t in s.why_resampled()])
     else:
-        tooltip = "FiiO K7 not connected"
+        tooltip = f"{device.display_name()} not connected"
     return json.dumps({"text": s.short(), "tooltip": tooltip,
                        "class": s.css_class(), "alt": s.css_class()})
 
@@ -123,7 +130,7 @@ def cmd_status(args) -> int:
         elif fmt == "short":
             out = s.short()
         elif s.k7 is None:
-            out = "No FiiO K7 connected."
+            out = f"No {device.display_name()} connected."
         else:
             lines = status_lines(s)
             tips = advice(s)
@@ -292,8 +299,17 @@ def cmd_eq(args) -> int:
             if not device.find():
                 return _no_k7()
             name = eq.enable(args.profile)
-            print(f"EQ on: {name}. 'FiiO K7 + EQ' is now the default output.")
+            print(f"EQ on: {name}. '{device.display_name()} + EQ' is now the default output.")
             print("Note: with EQ on, playback is processed (not bit-perfect).")
+            return 0
+        if a == "toggle":
+            if snapshot.take(with_volume=False).eq_on:
+                eq.disable()
+                print("EQ off.")
+            else:
+                if not device.find():
+                    return _no_k7()
+                print(f"EQ on: {eq.enable()}.")
             return 0
         if a == "off":
             eq.disable()
@@ -354,8 +370,41 @@ def cmd_firmware(args) -> int:
         print(f"Update interface:   USB DFU, {dfu.transfer_size}-byte blocks, "
               f"{'detaches itself' if dfu.will_detach else 'needs a host-driven reset'}")
     print()
-    print(firmware.UPDATE_HELP)
+    print(firmware.update_help(k7))
+    if args.open:
+        firmware.open_download_page()
     return 0
+
+
+def cmd_devices(args) -> int:
+    cards = device.list_usb_cards()
+    want = device.target_id()
+    conf = device.configured_id()
+    if not cards:
+        print("No USB sound cards found.")
+        return 1
+    for c in cards:
+        mark = "*" if c.usb_id == want else " "
+        kind = "" if c.playback else "  (no playback)"
+        print(f"{mark} {c.usb_id}  {c.name}  [card {c.card_index}: {c.card_id}]{kind}")
+    print(f"\nUsing: {'auto (the FiiO K7)' if conf == 'auto' else conf}. "
+          "Change with: k7ctl use <vvvv:pppp|auto>")
+    return 0
+
+
+def cmd_use(args) -> int:
+    from . import actions
+    try:
+        for m in actions.use_device(args.device):
+            print(m)
+    except ValueError as e:
+        return _err(str(e))
+    return 0
+
+
+def cmd_diag(args) -> int:
+    from . import diagnostics
+    return diagnostics.main()
 
 
 def cmd_tray(args) -> int:
@@ -375,8 +424,10 @@ def cmd_gui(args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="k7ctl", description="FiiO K7 status and setup for Linux")
+    p = argparse.ArgumentParser(prog="k7ctl", description="FiiO K7 (and other USB DAC) status and setup for Linux")
     p.add_argument("--version", action="version", version=f"k7ctl {__version__}")
+    p.add_argument("--notify", action="store_true",
+                   help="show the result as a desktop notification (for launchers and shortcuts)")
     sub = p.add_subparsers(dest="command", metavar="COMMAND")
 
     s = sub.add_parser("status", help="show what the K7 is playing (default)")
@@ -422,6 +473,7 @@ def build_parser() -> argparse.ArgumentParser:
     eo = esub.add_parser("on", help="turn EQ on (optionally with a profile)")
     eo.add_argument("profile", nargs="?")
     esub.add_parser("off", help="turn EQ off")
+    esub.add_parser("toggle", help="turn EQ on or off")
     esub.add_parser("_run")  # used by the systemd service
     e.set_defaults(func=cmd_eq)
 
@@ -433,7 +485,18 @@ def build_parser() -> argparse.ArgumentParser:
     st.set_defaults(func=cmd_setup)
 
     f = sub.add_parser("firmware", help="show the firmware version and how to update it")
+    f.add_argument("--open", action="store_true", help="open FiiO's firmware download page")
     f.set_defaults(func=cmd_firmware)
+
+    dv = sub.add_parser("devices", help="list USB sound cards (to use another DAC)")
+    dv.set_defaults(func=cmd_devices)
+
+    us = sub.add_parser("use", help="choose the DAC: a USB id from 'devices', or auto (the K7)")
+    us.add_argument("device", help="vvvv:pppp or auto")
+    us.set_defaults(func=cmd_use)
+
+    dg = sub.add_parser("diag", help="print a diagnostics report for bug reports")
+    dg.set_defaults(func=cmd_diag)
 
     g = sub.add_parser("gui", help="open the FiiO K7 window")
     g.set_defaults(func=cmd_gui)
@@ -443,13 +506,32 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def notify(summary: str, body: str, error: bool = False) -> bool:
+    if not shutil.which("notify-send"):
+        return False
+    try:
+        subprocess.run(["notify-send", "--app-name=k7ctl", "--icon",
+                        "dialog-error" if error else "audio-card", summary, body], timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
-        args = parser.parse_args(["status", *argv])
-    return args.func(args)
+        args = parser.parse_args([*argv, "status"])
+    if not args.notify:
+        return args.func(args)
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = args.func(args)
+    text = (out.getvalue() + err.getvalue()).strip()
+    if not notify(device.display_name(), text or ("Done." if rc == 0 else "Failed."), rc != 0):
+        print(text)
+    return rc
 
 
 if __name__ == "__main__":

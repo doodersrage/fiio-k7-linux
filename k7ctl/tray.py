@@ -11,7 +11,8 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import eq, keepawake, latency, rates, snapshot
+from . import device, eq, keepawake, latency, rates, settings, snapshot
+from .device import format_rate
 from .qt import QtCore, QtGui, QtWidgets, Worker, make_app, run_app, state_icon
 
 W = QtWidgets
@@ -40,18 +41,20 @@ class Tray:
         self.snap: snapshot.Snapshot | None = None
         self.was_connected: bool | None = None
         self.polling = False
+        self.last_rate: str | None = None
+        self.last_resampled: set[str] = set()
 
         self.tray = W.QSystemTrayIcon(state_icon("disconnected"))
         self.menu = W.QMenu()
 
-        a_open = QtGui.QAction("Open FiiO K7…", self.menu)
+        a_open = QtGui.QAction("Open k7ctl…", self.menu)
         a_open.triggered.connect(self.open_window)
         f = a_open.font()
         f.setBold(True)
         a_open.setFont(f)
         self.menu.addAction(a_open)
         self.menu.addSeparator()
-        self.a_status = self._info("No FiiO K7 connected")
+        self.a_status = self._info(f"No {device.display_name()} connected")
         self.a_detail = self._info("")
         self.a_warn = self._info("")
         self.menu.addSeparator()
@@ -73,6 +76,14 @@ class Tray:
             self.g_lat.addAction(a)
             self.m_lat.addAction(a)
             self.lat_actions[name] = a
+
+        self.m_notify = self.menu.addMenu("Notifications")
+        self.a_n_rate = QtGui.QAction("When the sample rate changes", self.m_notify)
+        self.a_n_res = QtGui.QAction("When something starts being resampled", self.m_notify)
+        for a, key in ((self.a_n_rate, "notify_rate"), (self.a_n_res, "notify_resample")):
+            a.setCheckable(True)
+            a.toggled.connect(lambda on, k=key: settings.set(**{k: on}))
+            self.m_notify.addAction(a)
 
         self.menu.addSeparator()
         self.a_auto = self._check("Start at login", self.toggle_autostart)
@@ -126,9 +137,9 @@ class Tray:
         """Run a settings change on the worker, report errors, then refresh."""
         def done(r):
             if isinstance(r, Exception):
-                self.tray.showMessage("FiiO K7", str(r), state_icon("disconnected"), 6000)
+                self.tray.showMessage(self.title(), str(r), state_icon("disconnected"), 6000)
             elif message:
-                self.tray.showMessage("FiiO K7", message.format(r) if "{}" in message else message,
+                self.tray.showMessage(self.title(), message.format(r) if "{}" in message else message,
                                       state_icon("eq" if "EQ" in message else "idle"), 3000)
             self.polling = False
             self.refresh()
@@ -136,23 +147,46 @@ class Tray:
                 self.window.refresh()
         self.worker.run(fn, done)
 
+    def title(self) -> str:
+        return self.snap.k7.name if self.snap and self.snap.k7 else device.display_name()
+
+    def notify_changes(self, s: snapshot.Snapshot, prefs: dict):
+        """Rate-change and resampling notifications (off by default)."""
+        rate = s.k7.stream.describe() if s.playing else None
+        if prefs["notify_rate"] and rate and self.last_rate and rate != self.last_rate:
+            self.tray.showMessage(self.title(), f"Now playing {rate}", state_icon(s.css_class()), 3000)
+        if rate:
+            self.last_rate = rate
+        resampled = {x.app for x in s.resampled}
+        new = resampled - self.last_resampled
+        if prefs["notify_resample"] and new and s.sink and s.sink.rate:
+            why = s.why_resampled()
+            self.tray.showMessage(self.title(), why[0] if why else
+                                  f"{', '.join(sorted(new))} resampled to {format_rate(s.sink.rate)}",
+                                  state_icon("resampled"), 6000)
+        self.last_resampled = resampled
+
     def update(self, s: snapshot.Snapshot):
         self.snap = s
         connected = s.connected
         if self.was_connected is not None and connected != self.was_connected:
-            self.tray.showMessage("FiiO K7", "Connected" if connected else "Disconnected",
+            self.tray.showMessage(self.title(), "Connected" if connected else "Disconnected",
                                   state_icon("idle" if connected else "disconnected"), 3000)
         self.was_connected = connected
+        prefs = settings.load()
+        self.notify_changes(s, prefs)
+        self._set_checked(self.a_n_rate, bool(prefs["notify_rate"]))
+        self._set_checked(self.a_n_res, bool(prefs["notify_resample"]))
 
         self.tray.setIcon(state_icon(s.css_class()))
         if not connected:
-            self.a_status.setText("No FiiO K7 connected")
+            self.a_status.setText(f"No {self.title()} connected")
             self.a_detail.setVisible(False)
             self.a_warn.setVisible(False)
-            self.tray.setToolTip("FiiO K7: not connected")
+            self.tray.setToolTip(f"{self.title()}: not connected")
         else:
             desc = s.k7.stream.describe()
-            self.a_status.setText(f"FiiO K7: {desc}")
+            self.a_status.setText(f"{self.title()}: {desc}")
             detail = []
             if s.eq_on:
                 detail.append(f"EQ: {s.eq_profile}")
@@ -165,7 +199,7 @@ class Tray:
             why = s.why_resampled()
             self.a_warn.setText(f"⚠ {why[0]}" if why else "")
             self.a_warn.setVisible(bool(why))
-            tip = [f"FiiO K7: {desc}"] + ([f"EQ: {s.eq_profile}"] if s.eq_on else []) + why
+            tip = [f"{self.title()}: {desc}"] + ([f"EQ: {s.eq_profile}"] if s.eq_on else []) + why
             self.tray.setToolTip("\n".join(tip))
 
         self._set_checked(self.a_rates, (s.allowed_rates is not None and len(s.allowed_rates) > 1)

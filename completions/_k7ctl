@@ -19,12 +19,20 @@ _k7ctl() {
         'volume-max:set PipeWire'"'"'s K7 volume to 100%'
         'setup:rates enable + default output + volume-max'
         'firmware:show the firmware version and how to update it'
-        'gui:open the FiiO K7 window'
+        'devices:list USB sound cards'
+        'use:choose the DAC (USB id or auto)'
+        'diag:print a diagnostics report'
+        'gui:open the k7ctl window'
         'tray:system tray icon'
     )
+    # drop global options (--notify) so the positions below are relative to the command
+    while (( CURRENT > 2 )) && [[ $words[2] == --* ]]; do
+        words=("$words[1]" "${(@)words[3,-1]}")
+        (( CURRENT-- ))
+    done
     if (( CURRENT == 2 )); then
         _describe 'command' cmds
-        _arguments '--help[show help]' '--version[show version]'
+        _arguments '--help[show help]' '--version[show version]' '--notify[show the result as a desktop notification]'
         return
     fi
     case $words[2] in
@@ -38,6 +46,8 @@ _k7ctl() {
         latency)   (( CURRENT == 3 )) && compadd default stable low-latency ;;
         keepawake) _arguments '1:action:(on off status)' '--no-restart[don'"'"'t restart WirePlumber now]' ;;
         setup)     _arguments '(-y --yes)'{-y,--yes}'[don'"'"'t ask before setting volume to 100%]' ;;
+        firmware)  _arguments '--open[open FiiO'"'"'s firmware download page]' ;;
+        use)       local -a ids; ids=(auto ${(f)"$(cat /proc/asound/card*/usbid 2>/dev/null)"}); compadd -a ids ;;
         eq)
             if (( CURRENT == 3 )); then
                 local -a acts
@@ -50,6 +60,7 @@ _k7ctl() {
                     'remove:delete a saved profile'
                     'on:turn EQ on'
                     'off:turn EQ off'
+                    'toggle:turn EQ on or off'
                 )
                 _describe 'eq action' acts
                 return

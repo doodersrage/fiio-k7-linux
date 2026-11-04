@@ -26,7 +26,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import __version__, pipewire, pwconf
+from . import __version__, device, pipewire, pwconf
 
 SERVICE = "k7ctl-eq.service"
 NODE = pipewire.EQ_NODE
@@ -264,7 +264,7 @@ def _q(s: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def render_conf(profile: Profile, profile_name: str, target: str) -> str:
+def render_conf(profile: Profile, profile_name: str, target: str, device_name: str = "FiiO K7") -> str:
     filters = [f"{{ type = bq_highshelf freq = 0 gain = {profile.safe_preamp:.2f} q = 1.0 }}"]
     filters += [f"{{ type = {f.type} freq = {f.freq:g} gain = {f.gain:.2f} q = {f.q:g} }}"
                 for f in profile.filters]
@@ -276,7 +276,7 @@ def render_conf(profile: Profile, profile_name: str, target: str) -> str:
     {{ name = libpipewire-module-adapter }}
     {{ name = libpipewire-module-filter-chain
         args = {{
-            node.description = {_q("FiiO K7 + EQ (" + profile_name + ")")}
+            node.description = {_q(device_name + " + EQ (" + profile_name + ")")}
             media.name = {_q("k7ctl EQ")}
             audio.channels = 2
             audio.position = [ FL FR ]
@@ -323,7 +323,7 @@ def render_unit() -> str:
     return f"""\
 # Written by k7ctl. Remove with: k7ctl eq off
 [Unit]
-Description=k7ctl headphone EQ for the FiiO K7
+Description=k7ctl headphone EQ
 After=pipewire.service wireplumber.service
 BindsTo=pipewire.service
 
@@ -380,7 +380,7 @@ def run_daemon(poll: float = 3.0) -> int:
                 if child:
                     child.terminate()
                     child.wait(timeout=5)
-                conf.write_text(render_conf(profile, name, current))
+                conf.write_text(render_conf(profile, name, current, device.display_name()))
                 print(f"k7ctl eq: {name} -> {current}", flush=True)
                 child = subprocess.Popen([pw, "-c", str(conf)])
                 target = current

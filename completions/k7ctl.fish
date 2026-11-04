@@ -1,6 +1,6 @@
 # fish completion for k7ctl
-set -l cmds status rates latency keepawake eq volume-max setup firmware gui tray
-set -l eqacts status list search get import remove on off
+set -l cmds status rates latency keepawake eq volume-max setup firmware devices use diag gui tray
+set -l eqacts status list search get import remove on off toggle
 
 function __k7ctl_profiles
     set -l dir (set -q XDG_DATA_HOME; and echo $XDG_DATA_HOME; or echo $HOME/.local/share)/k7ctl/eq
@@ -19,6 +19,10 @@ complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a eq -d 'Headphone
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a volume-max -d "Set PipeWire's K7 volume to 100%"
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a setup -d 'Bit-perfect setup in one go'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a firmware -d 'Firmware version and how to update'
+complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -l notify -d 'Show the result as a desktop notification'
+complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a devices -d 'List USB sound cards'
+complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a use -d 'Choose the DAC (USB id or auto)'
+complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a diag -d 'Print a diagnostics report'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a gui -d 'Open the FiiO K7 window'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a tray -d 'System tray icon'
 
@@ -30,6 +34,8 @@ complete -c k7ctl -n "__fish_seen_subcommand_from rates" -a 'enable disable stat
 complete -c k7ctl -n "__fish_seen_subcommand_from latency" -a 'default stable low-latency'
 complete -c k7ctl -n "__fish_seen_subcommand_from keepawake" -a 'on off status'
 complete -c k7ctl -n "__fish_seen_subcommand_from keepawake" -l no-restart -d "Don't restart WirePlumber now"
+complete -c k7ctl -n "__fish_seen_subcommand_from firmware" -l open -d "Open FiiO's firmware download page"
+complete -c k7ctl -n "__fish_seen_subcommand_from use" -a 'auto (cat /proc/asound/card*/usbid 2>/dev/null)'
 complete -c k7ctl -n "__fish_seen_subcommand_from setup" -s y -l yes -d "Don't ask before setting volume to 100%"
 
 complete -c k7ctl -n "__fish_seen_subcommand_from eq; and not __fish_seen_subcommand_from $eqacts" -a "$eqacts"

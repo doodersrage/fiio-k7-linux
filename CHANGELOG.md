@@ -14,6 +14,14 @@
 - **Settings window**: `k7ctl gui` (and "FiiO K7" in the app launcher) with the status, the streams playing to the K7,
   every setting, and AutoEQ search and download. The tray opens it on click; slow work (WirePlumber restarts,
   downloads) runs in the background, so neither the window nor the tray freezes.
+- **EQ curve**: the window plots the selected profile's frequency response (checked against PipeWire to 0.01 dB).
+- **Other USB DACs**: `k7ctl devices` and `k7ctl use <usb-id|auto>` (or the window's Device section).
+  Keep-awake now matches the DAC's USB id, not the K7's PipeWire node name.
+- **Launcher actions**: What's playing?, Headphone EQ on/off, Bit-perfect setup, Show tray icon;
+  `k7ctl --notify <command>` for shortcuts; `k7ctl eq toggle`.
+- **Notifications** (optional, in the tray) when the sample rate changes or something starts being resampled.
+- **Diagnostics**: `k7ctl diag` and "Copy diagnostics" in the window, for bug reports.
+- **Firmware**: "Check for updates" / `k7ctl firmware --open` opens FiiO's downloads (FiiO has no update API).
 - **Status bars**: `k7ctl status --format waybar|short [--watch]`, with example Waybar and Polybar configs.
 - Bash, zsh and fish completions; a man page.
 - Packages for Debian/Ubuntu (.deb), Fedora (.rpm) and Arch, built and tested in CI.

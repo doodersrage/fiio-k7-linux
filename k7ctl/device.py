@@ -1,9 +1,12 @@
-"""Find the FiiO K7 and read what it is doing from the kernel.
+"""Find the DAC (the FiiO K7 by default) and read what it is doing from the kernel.
 
 The K7 is a USB Audio Class 2 device. Its only USB interfaces are audio
 streaming and firmware update (DFU): it has no volume or mute controls and no
 vendor control channel. Everything here is read-only and comes from /proc/asound
 and /sys, so no special permissions are needed.
+
+Other USB DACs work too: `k7ctl use <vid:pid>` (or K7CTL_DEVICE=vid:pid) picks
+one; "auto" (the default) means the FiiO K7.
 """
 
 from __future__ import annotations
@@ -13,8 +16,9 @@ import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-VENDOR_ID = "2972"
-PRODUCT_IDS = {"0047": "FiiO K7"}
+# USB ids k7ctl knows by name; "auto" looks for these
+KNOWN = {"2972:0047": "FiiO K7"}
+DEFAULT_ID = "2972:0047"
 
 PROC_ASOUND = Path("/proc/asound")
 SYS_USB = Path("/sys/bus/usb/devices")
@@ -48,15 +52,21 @@ class Stream:
 
 @dataclass
 class K7:
+    """The DAC k7ctl is working with (the FiiO K7, or another USB DAC)."""
     card_index: int
     card_id: str              # ALSA id, e.g. "K7" -> hw:K7
     name: str
+    usb_id: str = DEFAULT_ID  # "vvvv:pppp"
     usb_path: str | None = None
     firmware: str | None = None   # from bcdDevice, e.g. "1.22"
     usb_speed: str | None = None
     supported_rates: list[int] = field(default_factory=list)
     supported_formats: list[str] = field(default_factory=list)
     stream: Stream = field(default_factory=Stream)
+
+    @property
+    def is_k7(self) -> bool:
+        return self.usb_id == DEFAULT_ID
 
     @property
     def alsa_device(self) -> str:
@@ -158,38 +168,111 @@ def _read(path: Path) -> str:
         return ""
 
 
-def _find_usb_dir(sys_usb: Path, product_id: str) -> Path | None:
+def _find_usb_dir(sys_usb: Path, usb_id: str) -> Path | None:
+    vid, pid = usb_id.split(":")
     try:
         entries = list(sys_usb.iterdir())
     except OSError:
         return None
     for d in entries:
-        if (_read(d / "idVendor").strip() == VENDOR_ID
-                and _read(d / "idProduct").strip() == product_id):
+        if _read(d / "idVendor").strip() == vid and _read(d / "idProduct").strip() == pid:
             return d
     return None
 
 
-def find(proc: Path = PROC_ASOUND, sys_usb: Path = SYS_USB) -> K7 | None:
-    """Return the first connected K7, or None."""
+def normalize_id(value: str) -> str:
+    """'2972:0047' / '0x2972:0x0047' / 'auto' -> canonical form; ValueError if invalid."""
+    v = value.strip().lower()
+    if v in ("", "auto"):
+        return "auto"
+    m = re.fullmatch(r"(?:0x)?([0-9a-f]{1,4}):(?:0x)?([0-9a-f]{1,4})", v)
+    if not m:
+        raise ValueError(f"not a USB id: {value!r} (expected vvvv:pppp, e.g. 2972:0047, or auto)")
+    return f"{int(m.group(1), 16):04x}:{int(m.group(2), 16):04x}"
+
+
+def configured_id() -> str:
+    """'auto' or the USB id chosen with `k7ctl use` / K7CTL_DEVICE."""
+    env = os.environ.get("K7CTL_DEVICE")
+    if env:
+        try:
+            return normalize_id(env)
+        except ValueError:
+            pass
+    from . import settings
+    try:
+        return normalize_id(str(settings.get("device")))
+    except ValueError:
+        return "auto"
+
+
+def target_id() -> str:
+    """The USB id to look for: the configured one, or the K7 in auto mode."""
+    c = configured_id()
+    return DEFAULT_ID if c == "auto" else c
+
+
+@dataclass
+class UsbCard:
+    card_index: int
+    card_id: str
+    usb_id: str
+    name: str
+    playback: bool
+
+
+def _card_name(card: Path, usb: Path | None, usb_id: str) -> str:
+    if usb_id in KNOWN:
+        return KNOWN[usb_id]
+    if usb is not None:
+        maker = _read(usb / "manufacturer").strip()
+        product = _read(usb / "product").strip()
+        if product:
+            return product if (not maker or product.startswith(maker.split()[0])) else f"{maker} {product}"
+    return _read(card / "id").strip() or f"USB audio {usb_id}"
+
+
+def list_usb_cards(proc: Path = PROC_ASOUND, sys_usb: Path = SYS_USB) -> list[UsbCard]:
+    """Every USB sound card, for `k7ctl devices`."""
+    out = []
+    try:
+        cards = sorted(proc.glob("card[0-9]*"), key=lambda p: int(p.name[4:]))
+    except OSError:
+        return out
+    for card in cards:
+        usbid = _read(card / "usbid").strip().lower()
+        if ":" not in usbid:
+            continue
+        usb = _find_usb_dir(sys_usb, usbid)
+        out.append(UsbCard(
+            card_index=int(card.name[4:]),
+            card_id=_read(card / "id").strip(),
+            usb_id=usbid,
+            name=_card_name(card, usb, usbid),
+            playback=(card / "pcm0p").exists(),
+        ))
+    return out
+
+
+def find(proc: Path = PROC_ASOUND, sys_usb: Path = SYS_USB,
+         usb_id: str | None = None) -> K7 | None:
+    """Return the DAC (the configured one, or the K7), or None if it isn't connected."""
+    want = usb_id or target_id()
     try:
         cards = sorted(proc.glob("card[0-9]*"), key=lambda p: int(p.name[4:]))
     except OSError:
         return None
     for card in cards:
-        usbid = _read(card / "usbid").strip()
-        if ":" not in usbid:
+        usbid = _read(card / "usbid").strip().lower()
+        if usbid != want:
             continue
-        vid, pid = usbid.split(":", 1)
-        if vid != VENDOR_ID or pid not in PRODUCT_IDS:
-            continue
-
+        usb = _find_usb_dir(sys_usb, usbid)
         k7 = K7(
             card_index=int(card.name[4:]),
-            card_id=_read(card / "id").strip() or PRODUCT_IDS[pid],
-            name=PRODUCT_IDS[pid],
+            card_id=_read(card / "id").strip() or "USB",
+            name=_card_name(card, usb, usbid),
+            usb_id=usbid,
         )
-        usb = _find_usb_dir(sys_usb, pid)
         if usb is not None:
             k7.usb_path = os.fspath(usb)
             bcd = _read(usb / "bcdDevice").strip()
@@ -217,3 +300,9 @@ def find(proc: Path = PROC_ASOUND, sys_usb: Path = SYS_USB) -> K7 | None:
         )
         return k7
     return None
+
+
+def display_name() -> str:
+    """Name for messages when the device may not be connected."""
+    t = target_id()
+    return KNOWN.get(t, f"USB DAC {t}")

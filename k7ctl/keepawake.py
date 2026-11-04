@@ -14,15 +14,17 @@ from pathlib import Path
 from . import pipewire, pwconf
 
 CONF_NAME = "50-k7ctl-keepawake.conf"
-NODE_PATTERN = "~alsa_output.usb-.*FiiO_K7.*"
 
-RULE = f"""\
-# Keep the FiiO K7 open when idle so the start of sounds isn't cut off.
+
+def render_rule(usb_id: str | None = None) -> str:
+    component = pipewire.usb_component(usb_id)
+    return f"""\
+# Keep the DAC ({component[3:]}) open when idle so the start of sounds isn't cut off.
 # Remove with: k7ctl keepawake off
 monitor.alsa.rules = [
   {{
     matches = [
-      {{ node.name = "{NODE_PATTERN}" }}
+      {{ media.class = "Audio/Sink", alsa.components = "~.*{component}.*" }}
     ]
     actions = {{
       update-props = {{
@@ -55,7 +57,7 @@ def restart_wireplumber() -> bool:
 
 
 def enable(restart: bool = True) -> tuple[Path, bool]:
-    path = pwconf.write(conf_path(), RULE)
+    path = pwconf.write(conf_path(), render_rule())
     return path, (restart_wireplumber() if restart else False)
 
 
@@ -65,11 +67,20 @@ def disable(restart: bool = True) -> tuple[bool, bool]:
 
 
 def active_on_node(pw_dump: list) -> bool | None:
-    """Whether the running K7 sink has suspend disabled (None if no sink)."""
+    """Whether the DAC's sink has suspend disabled (None if no sink)."""
+    sinks = {s["id"] for s in pipewire.parse_sinks(pw_dump)}
     for obj in pw_dump:
-        if obj.get("type") != "PipeWire:Interface:Node":
-            continue
-        props = (obj.get("info") or {}).get("props") or {}
-        if props.get("media.class") == "Audio/Sink" and "FiiO_K7" in str(props.get("node.name", "")):
+        if obj.get("id") in sinks and obj.get("type") == "PipeWire:Interface:Node":
+            props = (obj.get("info") or {}).get("props") or {}
             return str(props.get("session.suspend-timeout-seconds")) == "0"
     return None
+
+
+def configured_for() -> str | None:
+    """The USB id the installed rule is for (None if not installed)."""
+    import re
+    try:
+        m = re.search(r"USB([0-9a-fA-F]{4}:[0-9a-fA-F]{4})", conf_path().read_text())
+    except OSError:
+        return None
+    return m.group(1).lower() if m else None

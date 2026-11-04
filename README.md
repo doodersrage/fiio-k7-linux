@@ -13,6 +13,7 @@ FiiO's software for the K7 DAC/headphone amp is Windows-only. This project gives
 - **Keep awake**: stops the start of sounds being cut off after the K7 has been idle.
 - **Latency presets** against crackles at high sample rates (or for low-latency gaming).
 - **A settings window** (`k7ctl gui`, or "FiiO K7" in your app launcher) and a **system tray icon** with all of the above.
+- **Other USB DACs** work too (`k7ctl use <usb-id>`), though only the K7 is tested.
 - Output for **Waybar, Polybar** and scripts (JSON); bash, zsh and fish completions; a man page.
 
 ![The FiiO K7 window](docs/window.png)
@@ -95,8 +96,11 @@ k7ctl tray       # tray icon: click it to open the window; "Start at login" is i
 | `k7ctl eq search <headphone>` | Search AutoEQ's headphone profiles. |
 | `k7ctl eq get "<headphone>" [--source …] [--on]` | Download a profile (and turn EQ on with it). |
 | `k7ctl eq import <file>` | Import an Equalizer APO / `ParametricEQ.txt` file. |
-| `k7ctl eq on [profile]` / `off` | Turn the EQ on or off. `eq list`, `eq status`, `eq remove` manage profiles. |
-| `k7ctl firmware` | Installed firmware version and how to update it. |
+| `k7ctl eq on [profile]` / `off` / `toggle` | Turn the EQ on or off. `eq list`, `eq status`, `eq remove` manage profiles. |
+| `k7ctl firmware [--open]` | Installed firmware version and how to update it; `--open` opens FiiO's download page. |
+| `k7ctl devices` / `k7ctl use <id\|auto>` | List USB sound cards / use another DAC (see below). |
+| `k7ctl diag` | A diagnostics report to paste into bug reports. |
+| `k7ctl --notify <command>` | Show the result as a desktop notification (for shortcuts). |
 | `k7ctl gui` | The settings window. |
 | `k7ctl tray` | System tray icon; click it to open the window. Without a system tray, opens the window. |
 
@@ -154,6 +158,32 @@ bit-perfect**; `k7ctl status` says so.
 - It runs as a systemd user service, `k7ctl-eq.service`, which starts with PipeWire at login while EQ is on.
   Logs: `journalctl --user -u k7ctl-eq`.
 - Profiles are kept in `~/.local/share/k7ctl/eq/`.
+- The window plots the selected profile: solid is what you hear (with the preamp), dashed is the correction's
+  shape. The plot uses the same filter maths as PipeWire; it was checked against tones measured through
+  PipeWire's EQ to within 0.01 dB.
+
+## Launcher actions and shortcuts
+
+Right-click **FiiO K7** in your app launcher for *What's playing?*, *Headphone EQ on/off*, *Bit-perfect setup* and
+*Show tray icon*. For a keyboard shortcut, bind e.g. `k7ctl --notify eq toggle` in your desktop's shortcut settings.
+
+## Notifications
+
+The tray icon can notify you when the sample rate changes, or when an app starts being resampled (with the reason).
+Both are off by default; turn them on in the tray's **Notifications** menu or the window.
+
+## Other USB DACs
+
+Nearly everything works with any USB DAC; only the firmware page and the hints about the K7's knob are K7-specific.
+
+```sh
+k7ctl devices                 # * marks the one in use
+k7ctl use 041e:3130           # use this one (its USB id)
+k7ctl use auto                # back to the FiiO K7
+```
+
+Or pick it under **Device** in the window. Keep-awake and the EQ follow the change. Only the FiiO K7 is tested;
+reports for other DACs (with `k7ctl diag`) are welcome.
 
 ## Keep awake
 
@@ -209,7 +239,9 @@ PipeWire plays PCM. For native DSD (DSF/DFF files sent to the DAC as DSD, not co
 
 ## Firmware updates
 
-k7ctl shows the installed version but **does not flash firmware**. FiiO's update format isn't documented, and a failed
+k7ctl shows the installed version but **does not flash firmware**, and can't check for new versions automatically:
+FiiO publishes no update API. `k7ctl firmware --open` (or **Check for updates** in the window) opens FiiO's firmware
+downloads so you can compare. FiiO's update format isn't documented, and a failed
 flash can leave the DAC unusable. To update, run FiiO's Windows updater, either on a Windows PC or in a Windows virtual
 machine (virt-manager/QEMU, VirtualBox) with the K7 (`2972:0047`) passed through as a USB device. Keep the K7 powered
 for the whole update.
@@ -223,7 +255,7 @@ k7ctl eq off
 k7ctl keepawake off
 k7ctl latency default
 k7ctl rates disable
-rm -rf ~/.config/autostart/k7ctl-tray.desktop ~/.config/k7ctl ~/.local/share/k7ctl ~/.cache/k7ctl
+rm -rf ~/.config/autostart/k7ctl-tray.desktop ~/.config/k7ctl ~/.local/share/k7ctl ~/.cache/k7ctl   # settings and EQ profiles
 sudo pacman -R k7ctl          # or: sudo apt remove k7ctl / sudo dnf remove k7ctl / pipx uninstall k7ctl
 ```
 

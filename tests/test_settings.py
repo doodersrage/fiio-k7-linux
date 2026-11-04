@@ -31,13 +31,17 @@ def test_latency_apply(tmp_path, monkeypatch):
 def test_keepawake_files(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     path, restarted = keepawake.enable(restart=False)
-    assert not restarted and "session.suspend-timeout-seconds = 0" in path.read_text()
+    text = path.read_text()
+    assert not restarted and "session.suspend-timeout-seconds = 0" in text
+    assert 'alsa.components = "~.*USB2972:0047.*"' in text
+    assert keepawake.configured_for() == "2972:0047"
     assert "wireplumber.conf.d" in str(path)
     assert keepawake.disable(restart=False) == (True, False)
     dump = [{"type": "PipeWire:Interface:Node", "id": 1, "info": {"props": {
         "media.class": "Audio/Sink", "node.name": "alsa_output.usb-X_FiiO_K7-00.analog-stereo",
-        "session.suspend-timeout-seconds": 0}}}]
+        "alsa.components": "USB2972:0047", "session.suspend-timeout-seconds": 0}}}]
     assert keepawake.active_on_node(dump) is True
+
 
 
 def test_k7_is_default():

@@ -9,7 +9,19 @@ Terminal=false
 Categories=AudioVideo;Audio;Mixer;
 Keywords=fiio;k7;dac;sample rate;bit-perfect;eq;equalizer;autoeq;headphones;
 StartupNotify=true
-Actions=tray;
+Actions=status;eq-toggle;setup;tray;
+
+[Desktop Action status]
+Name=What's playing?
+Exec=k7ctl --notify status
+
+[Desktop Action eq-toggle]
+Name=Headphone EQ on/off
+Exec=k7ctl --notify eq toggle
+
+[Desktop Action setup]
+Name=Bit-perfect setup
+Exec=k7ctl --notify setup
 
 [Desktop Action tray]
 Name=Show tray icon

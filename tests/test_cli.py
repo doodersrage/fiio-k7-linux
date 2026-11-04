@@ -34,3 +34,16 @@ def test_gui_without_qt(monkeypatch, capsys):
     monkeypatch.setattr(builtins, "__import__", no_qt)
     assert cli.main(["gui"]) == 1
     assert "need PyQt6 or PySide6" in capsys.readouterr().err
+
+
+def test_diag_report_runs(monkeypatch, xdg):
+    from k7ctl import diagnostics, snapshot
+    monkeypatch.setattr(diagnostics.device, "find", lambda *a, **k: None)
+    monkeypatch.setattr(diagnostics.device, "list_usb_cards", lambda: [])
+    monkeypatch.setattr(diagnostics.snapshot, "take", lambda *a, **k: snapshot.Snapshot(
+        None, None, None, None, None, None, False, None, False))
+    monkeypatch.setattr(diagnostics, "_run", lambda args, limit=4000: "(stub)")
+    text = diagnostics.report()
+    for section in ("## k7ctl", "## USB sound cards", "## Device", "## PipeWire", "## EQ service"):
+        assert section in text
+    assert "not connected" in text

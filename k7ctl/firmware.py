@@ -15,12 +15,41 @@ from pathlib import Path
 DFU_CLASS, DFU_SUBCLASS = 0xFE, 0x01
 DFU_FUNCTIONAL = 0x21
 
-UPDATE_HELP = """\
+DOWNLOAD_URL = "https://forum.fiio.com/firmwareDown.do"
+
+UPDATE_HELP = f"""\
 To update the K7's firmware, use FiiO's Windows updater. Without a Windows PC
 you can run it in a Windows virtual machine (for example virt-manager/QEMU or
 VirtualBox) and pass the K7 through to it as a USB device (2972:0047).
-Downloads: https://www.fiio.com/k7 (Downloads / Firmware).
+FiiO's firmware downloads: {DOWNLOAD_URL}
+Compare the version there with the installed one shown above.
 Keep the K7 plugged in and powered for the whole update."""
+
+GENERIC_HELP = """\
+Firmware updates for this DAC come from its manufacturer, usually as a Windows
+or macOS tool. Without one, run it in a virtual machine with the DAC passed
+through as a USB device. The version shown is the USB device version
+(bcdDevice), which most manufacturers use as the firmware version."""
+
+
+def update_help(k7) -> str:
+    return UPDATE_HELP if (k7 is None or k7.is_k7) else GENERIC_HELP
+
+
+def open_download_page() -> bool:
+    """Open FiiO's firmware page in the browser (FiiO has no update API to check)."""
+    import shutil
+    import subprocess
+    opener = shutil.which("xdg-open")
+    if not opener:
+        print(DOWNLOAD_URL)
+        return False
+    try:
+        subprocess.Popen([opener, DOWNLOAD_URL], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except OSError:
+        return False
+    return True
 
 
 @dataclass

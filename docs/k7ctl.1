@@ -3,6 +3,7 @@
 k7ctl \- FiiO K7 status, bit\-perfect setup and headphone EQ for Linux
 .SH SYNOPSIS
 .B k7ctl
+.RB [ \-\-notify ]
 .RI [ command ]
 .RI [ arguments ]
 .SH DESCRIPTION
@@ -16,10 +17,21 @@ The K7 has no volume, gain or input controls over USB: the knob and switches are
 so no software can change them. Sound itself needs no driver; the K7 is a standard USB audio
 device.
 .PP
+Other USB DACs work too: see
+.B devices
+and
+.BR use .
+.PP
 Without a command,
 .B k7ctl
 runs
 .BR status .
+.SH OPTIONS
+.TP
+.B \-\-notify
+Show the command's result as a desktop notification instead of printing it (for the
+launcher actions and keyboard shortcuts). Needs
+.BR notify\-send .
 .SH COMMANDS
 .SS Status
 .TP
@@ -34,8 +46,31 @@ a few characters for other status bars; with
 .B \-\-watch
 a new line is printed whenever something changes. Exits 1 if no K7 is connected.
 .TP
-.B firmware
+.BR firmware " [" \-\-open ]
 The installed firmware version and how to update it. k7ctl does not flash firmware.
+.B \-\-open
+opens FiiO's firmware download page to compare versions (FiiO has no update API to check
+automatically).
+.TP
+.B diag
+A diagnostics report for bug reports: versions, the device's kernel status, PipeWire
+settings, k7ctl's files and the EQ service log. The window's "Copy diagnostics" button copies
+the same report.
+.SS Device
+.TP
+.B devices
+List USB sound cards with their USB ids; * marks the one k7ctl uses.
+.TP
+.BI use " vvvv:pppp" \fR|\fBauto
+Use another USB DAC (by its USB id from
+.BR devices ),
+or
+.B auto
+for the FiiO K7. Keep\-awake and the EQ move to it if they are on. Saved in
+.IR ~/.config/k7ctl/settings.json ;
+the
+.B K7CTL_DEVICE
+environment variable overrides it.
 .SS Bit\-perfect playback
 .TP
 .BR rates " [enable|disable|status]"
@@ -92,13 +127,18 @@ default.
 .B eq off
 Stop the EQ and make the K7 the default output again.
 .TP
+.B eq toggle
+Turn the EQ on (with the selected profile) or off.
+.TP
 .BR "eq list" ", " "eq status" ", " "eq remove \fIprofile\fR"
 Saved profiles, whether EQ is on, delete a profile.
 .SS Desktop
 .TP
 .B gui
 A window with the status, the streams playing to the K7 and all of the above settings,
-including searching and downloading EQ profiles.
+including searching and downloading EQ profiles, a plot of the selected profile's frequency
+response, the DAC to use, and notifications for rate changes and resampling (shown by the
+tray icon).
 .TP
 .B tray
 A system tray icon with the status and common settings; click it to open the window. Without a
@@ -111,11 +151,21 @@ Saved EQ profiles.
 .I ~/.config/k7ctl/eq.json
 The selected EQ profile.
 .TP
+.I ~/.config/k7ctl/settings.json
+The DAC to use and notification settings.
+.TP
 .I ~/.config/systemd/user/k7ctl\-eq.service
 The EQ service, while EQ is on.
 .TP
 .I ~/.config/autostart/k7ctl\-tray.desktop
 Starts the tray icon at login (the tray's "Start at login").
+.SH ENVIRONMENT
+.TP
+.B K7CTL_DEVICE
+A USB id (vvvv:pppp) or
+.BR auto ;
+overrides the device chosen with
+.BR use .
 .SH EXIT STATUS
 0 on success, 1 on errors or when no K7 is connected.
 .SH EXAMPLES

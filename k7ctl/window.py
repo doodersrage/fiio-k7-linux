@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import sys
 
-from . import __version__, eq, firmware, keepawake, latency, pipewire, rates, snapshot
+from . import (device, eq, firmware, keepawake, latency, pipewire, rates, settings,
+               snapshot)
+from .curvewidget import EqCurve
 from .device import format_rate
 from .qt import QtCore, QtGui, QtWidgets, Signal, Worker, make_app, run_app, state_icon, theme_icon
 
@@ -200,6 +202,16 @@ class Window(W.QMainWindow):
         form.addRow("Latency:", self.latency_combo)
         self.latency_hint = hint()
         form.addRow(self.latency_hint)
+
+        self.notify_rate_cb = W.QCheckBox("When the sample rate changes")
+        self.notify_rate_cb.toggled.connect(lambda on: self.save_setting(notify_rate=on))
+        self.notify_res_cb = W.QCheckBox("When something starts being resampled")
+        self.notify_res_cb.toggled.connect(lambda on: self.save_setting(notify_resample=on))
+        nbox = W.QVBoxLayout()
+        nbox.addWidget(self.notify_rate_cb)
+        nbox.addWidget(self.notify_res_cb)
+        form.addRow("Notify:", nbox)
+        form.addRow(hint("Notifications come from the tray icon, so it needs to be running."))
         return box
 
     def build_eq(self) -> W.QGroupBox:
@@ -224,6 +236,11 @@ class Window(W.QMainWindow):
         self.remove_btn.clicked.connect(self.remove_profile)
         top.addWidget(self.remove_btn)
         lay.addLayout(top)
+        self.curve = EqCurve()
+        lay.addWidget(self.curve)
+        self.curve_hint = hint("Solid: what you hear (with the preamp that prevents clipping). "
+                               "Dashed: the correction's shape.")
+        lay.addWidget(self.curve_hint)
         lay.addWidget(hint("With EQ on, playback is processed and no longer bit-perfect. "
                            "Turn it off for bit-perfect listening."))
 
@@ -259,6 +276,9 @@ class Window(W.QMainWindow):
     def build_device(self) -> W.QGroupBox:
         box = self.device_box = W.QGroupBox("Device")
         form = W.QFormLayout(box)
+        self.device_combo = W.QComboBox()
+        self.device_combo.activated.connect(self.pick_device)
+        form.addRow("DAC:", self.device_combo)
         self.dev = {}
         for key, label in (("firmware", "Firmware:"), ("usb", "USB:"), ("alsa", "ALSA device:"),
                            ("rates", "Sample rates:"), ("formats", "Formats:")):
@@ -266,15 +286,25 @@ class Window(W.QMainWindow):
             w.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             self.dev[key] = w
             form.addRow(label, w)
-        fw = W.QPushButton("How to update the firmware")
-        fw.clicked.connect(lambda: W.QMessageBox.information(self, "FiiO K7 firmware",
-                                                              firmware.UPDATE_HELP))
         row = W.QHBoxLayout()
+        self.diag_btn = W.QPushButton(theme_icon("edit-copy"), "Copy diagnostics")
+        self.diag_btn.setToolTip("Copy a report for bug reports to the clipboard")
+        self.diag_btn.clicked.connect(self.copy_diagnostics)
+        row.addWidget(self.diag_btn)
         row.addStretch(1)
+        self.fw_check_btn = W.QPushButton(theme_icon("internet-web-browser", "globe"), "Check for updates")
+        self.fw_check_btn.setToolTip("Open FiiO's firmware downloads to compare with the installed version")
+        self.fw_check_btn.clicked.connect(firmware.open_download_page)
+        row.addWidget(self.fw_check_btn)
+        fw = W.QPushButton("How to update")
+        fw.clicked.connect(lambda: W.QMessageBox.information(
+            self, "Firmware", firmware.update_help(self.snap.k7 if self.snap else None)))
         row.addWidget(fw)
         form.addRow(row)
-        form.addRow(hint("The K7's volume knob, gain switch and input/output selector are "
-                         "physical only: the K7 has no way to change them over USB."))
+        self.physical_hint = hint("The K7's volume knob, gain switch and input/output selector are "
+                                  "physical only: the K7 has no way to change them over USB.")
+        form.addRow(self.physical_hint)
+        self.fill_devices()
         return box
 
     def fit_to_screen(self):
@@ -320,8 +350,19 @@ class Window(W.QMainWindow):
     def fill(self, s: snapshot.Snapshot):
         self.icon.setPixmap(state_icon(s.css_class()).pixmap(48, 48))
         k7 = s.k7
+        name = k7.name if k7 else device.display_name()
+        self.title.setText(name)
+        self.setWindowTitle(name)
+        is_k7 = (k7.is_k7 if k7 else device.target_id() == device.DEFAULT_ID)
+        self.fw_check_btn.setVisible(is_k7)
+        self.physical_hint.setVisible(is_k7)
+        self.fill_devices()
+        settings_now = settings.load()
+        self._set(self.notify_rate_cb, bool(settings_now["notify_rate"]))
+        self._set(self.notify_res_cb, bool(settings_now["notify_resample"]))
         if not k7:
-            self.subtitle.setText("Not connected. Plug in the K7 and switch it to USB input.")
+            self.subtitle.setText("Not connected. Plug in the K7 and switch it to USB input." if is_k7
+                                  else f"Not connected ({device.target_id()}).")
             for w in (self.playing, self.fmt, self.bitperfect, self.volume, self.default_out):
                 w.setText("–")
             colored(self.bitperfect, None)
@@ -365,8 +406,8 @@ class Window(W.QMainWindow):
             else:
                 self.volume.setText("–")
             if sink:
-                self.default_out.setText("FiiO K7 + EQ" if sink.eq_is_default else
-                                         "FiiO K7" if sink.is_default else "another output")
+                self.default_out.setText(f"{k7.name} + EQ" if sink.eq_is_default else
+                                         k7.name if sink.is_default else "another output")
 
             self.dev["firmware"].setText(k7.firmware or "unknown")
             self.dev["usb"].setText(k7.usb_speed or "unknown")
@@ -413,6 +454,33 @@ class Window(W.QMainWindow):
         self.why.setText("\n".join(why))
         self.why.setVisible(bool(why))
 
+    def show_curve(self):
+        name = self.profile_combo.currentData()
+        profile = None
+        if name:
+            try:
+                profile = eq.parse_profile(eq.profile_path(name).read_text(errors="replace"))
+            except (OSError, eq.EqError):
+                profile = None
+        self.curve.set_profile(profile)
+        self.curve_hint.setVisible(profile is not None and bool(profile.safe_preamp))
+
+    def fill_devices(self):
+        cards = [c for c in device.list_usb_cards() if c.playback]
+        conf = device.configured_id()
+        items = [("auto", "Auto (FiiO K7)")] + [(c.usb_id, f"{c.name}  ({c.usb_id})") for c in cards]
+        if conf != "auto" and conf not in {c.usb_id for c in cards}:
+            items.append((conf, f"{conf} (not connected)"))
+        current = [(self.device_combo.itemData(i), self.device_combo.itemText(i))
+                   for i in range(self.device_combo.count())]
+        if current != items or self.device_combo.currentData() != conf:
+            self.device_combo.blockSignals(True)
+            self.device_combo.clear()
+            for data, label in items:
+                self.device_combo.addItem(label, data)
+            self.device_combo.setCurrentIndex(max(0, self.device_combo.findData(conf)))
+            self.device_combo.blockSignals(False)
+
     def fill_profiles(self):
         profiles = eq.list_profiles()
         sel = eq.selected_profile()
@@ -428,6 +496,7 @@ class Window(W.QMainWindow):
             if sel in profiles:
                 self.profile_combo.setCurrentIndex(profiles.index(sel))
             self.profile_combo.blockSignals(False)
+            self.show_curve()
 
     def update_enabled(self):
         busy = self.acting > 0
@@ -551,6 +620,7 @@ class Window(W.QMainWindow):
         else:
             eq.save_state(profile=name)
             self.say(f"Selected {name}. Tick “EQ on” to use it.", 4000)
+        self.show_curve()
 
     def import_profile(self):
         path, _ = W.QFileDialog.getOpenFileName(
@@ -611,6 +681,26 @@ class Window(W.QMainWindow):
             return name
         self.act(f"Downloading {entry.name}", job, "EQ on: {}.")
 
+    def save_setting(self, **values):
+        settings.set(**values)
+
+    def pick_device(self, _index: int):
+        value = self.device_combo.currentData()
+        if not value or value == device.configured_id():
+            return
+        from . import actions
+        self.act("Switching device", lambda: actions.use_device(value),
+                 on_done=lambda msgs: self.say(" ".join(msgs), 8000, "ok"))
+
+    def copy_diagnostics(self):
+        from . import diagnostics
+
+        def done(text):
+            W.QApplication.clipboard().setText(text)
+            self.say(f"Diagnostics copied to the clipboard ({len(text.splitlines())} lines). "
+                     "Paste them into a bug report.", 6000, "ok")
+        self.act("Collecting diagnostics", diagnostics.report, on_done=done)
+
     # ---------------------------------------------------------------- window
     def present(self):
         self.show()
@@ -638,7 +728,6 @@ class Window(W.QMainWindow):
 def main() -> int:
     app = make_app()
     w = Window()
-    w.setWindowTitle(f"FiiO K7 — k7ctl {__version__}")
     w.show()
 
     def cleanup():

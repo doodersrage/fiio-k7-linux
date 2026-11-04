@@ -61,7 +61,7 @@
   <releases>
     <release version="0.2.0" date="2026-11-04">
       <description>
-        <p>Settings window, resampling diagnosis, headphone EQ, keep-awake, latency presets, status bar output, shell completions and a man page.</p>
+        <p>Settings window with EQ curve, support for other USB DACs, launcher actions, notifications, resampling diagnosis, headphone EQ, keep-awake, latency presets, status bar output, shell completions and a man page.</p>
       </description>
     </release>
     <release version="0.1.0" date="2026-11-04">

@@ -14,8 +14,14 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 
-USB_COMPONENT = "USB2972:0047"
+from . import device
+
 EQ_NODE = "k7ctl_eq"
+
+
+def usb_component(usb_id: str | None = None) -> str:
+    """'2972:0047' -> 'USB2972:0047', as in the ALSA nodes' alsa.components."""
+    return "USB" + (usb_id or device.target_id())
 
 
 @dataclass
@@ -79,8 +85,9 @@ def _format(obj: dict) -> dict:
     return fmts[0] if fmts else {}
 
 
-def parse_sinks(pw_dump: list) -> list[dict]:
-    """The K7's Audio/Sink nodes from `pw-dump` JSON."""
+def parse_sinks(pw_dump: list, usb_id: str | None = None) -> list[dict]:
+    """The DAC's Audio/Sink nodes from `pw-dump` JSON."""
+    component = usb_component(usb_id).lower()
     out = []
     for obj in pw_dump:
         if obj.get("type") != "PipeWire:Interface:Node":
@@ -88,7 +95,7 @@ def parse_sinks(pw_dump: list) -> list[dict]:
         props = _props(obj)
         if props.get("media.class") != "Audio/Sink":
             continue
-        if USB_COMPONENT not in str(props.get("alsa.components", "")):
+        if component not in str(props.get("alsa.components", "")).lower():
             continue
         fmt = _format(obj)
         out.append({

@@ -112,3 +112,35 @@ def test_standalone_close_shuts_down(win):
     win.show()
     win.close()
     assert win.closed
+
+
+def test_curve_device_picker_and_diagnostics(win, monkeypatch):
+    eq.save_profile("HD 600", HD600)
+    eq.save_state(profile="HD 600")
+    win.fill_profiles()
+    assert win.curve.points and win.curve.points[0][1] == pytest.approx(-6.3, abs=0.5)
+    win.curve.resize(500, 170)
+    win.curve.grab()                                  # paints without errors
+
+    monkeypatch.setattr(window.device, "list_usb_cards", lambda: [
+        window.device.UsbCard(1, "K7", "2972:0047", "FiiO K7", True),
+        window.device.UsbCard(2, "BTW5", "041e:3130", "Creative BT-W5", True)])
+    win.fill_devices()
+    assert [win.device_combo.itemData(i) for i in range(win.device_combo.count())] == \
+        ["auto", "2972:0047", "041e:3130"]
+    used = []
+    import k7ctl.actions as actions
+    monkeypatch.setattr(actions, "use_device", lambda v: used.append(v) or [f"Using {v}."])
+    win.device_combo.setCurrentIndex(2)
+    win.device_combo.activated.emit(2)
+    assert used == ["041e:3130"] and "Using 041e:3130" in win.message()
+
+    import k7ctl.diagnostics as diagnostics
+    monkeypatch.setattr(diagnostics, "report", lambda: "## k7ctl\nline\n")
+    win.copy_diagnostics()
+    assert qt.QtWidgets.QApplication.clipboard().text() == "## k7ctl\nline\n"
+    assert "copied" in win.message()
+
+    win.notify_rate_cb.setChecked(True)
+    from k7ctl import settings
+    assert settings.get("notify_rate") is True

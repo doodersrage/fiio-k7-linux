@@ -65,7 +65,8 @@ QT_QPA_PLATFORM=offscreen %{python3} -m pytest -q -p no:cacheprovider tests
 * Wed Nov 04 2026 Robert McDowell <doodersrage@gmail.com> - 0.2.0-1
 - Show which app keeps the K7 at another rate and which streams are resampled
 - keepawake, latency presets, headphone EQ (AutoEQ), status bar output
-- Settings window (k7ctl gui); the tray no longer freezes during changes
+- Settings window (k7ctl gui) with EQ curve; the tray no longer freezes
+- Other USB DACs (k7ctl devices/use), launcher actions, notifications, diagnostics
 - Shell completions and man page
 
 * Wed Nov 04 2026 Robert McDowell <doodersrage@gmail.com> - 0.1.0-1

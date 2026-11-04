@@ -93,7 +93,7 @@ class Worker(QtCore.QObject):
 def make_app() -> QtWidgets.QApplication:
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
     app.setApplicationName("k7ctl")
-    app.setApplicationDisplayName("FiiO K7")
+    app.setApplicationDisplayName("k7ctl")
     app.setDesktopFileName("k7ctl")
     return app
 
