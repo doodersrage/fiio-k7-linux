@@ -19,7 +19,7 @@
       <li>Let PipeWire play music at its own sample rate instead of resampling everything to 48 kHz</li>
       <li>Check that PipeWire's volume isn't throwing away resolution</li>
       <li>See which application is keeping the K7 at another sample rate, and which streams are resampled</li>
-      <li>Headphone EQ with profiles for thousands of headphones from AutoEQ</li>
+      <li>Headphone EQ with profiles for thousands of headphones from AutoEQ, and crossfeed</li>
       <li>Keep the K7 awake so the start of sounds isn't cut off, and buffer presets against crackles</li>
       <li>Show the installed firmware version and how to update it</li>
     </ul>
@@ -59,6 +59,11 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.0" date="2026-11-04">
+      <description>
+        <p>Headphone crossfeed, and resampler quality presets for when sample rates have to be converted.</p>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-11-04">
       <description>
         <p>Exclusive mode for direct players (native DSD), and German, Spanish and French translations.</p>

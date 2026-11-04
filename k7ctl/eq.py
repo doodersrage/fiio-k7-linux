@@ -16,6 +16,7 @@ EQ means the audio is processed, so playback is no longer bit-perfect.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import shutil
@@ -264,11 +265,119 @@ def _q(s: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def render_conf(profile: Profile, profile_name: str, target: str, device_name: str = "FiiO K7") -> str:
-    filters = [f"{{ type = bq_highshelf freq = 0 gain = {profile.safe_preamp:.2f} q = 1.0 }}"]
-    filters += [f"{{ type = {f.type} freq = {f.freq:g} gain = {f.gain:.2f} q = {f.q:g} }}"
-                for f in profile.filters]
-    filter_lines = "\n".join(" " * 24 + f for f in filters)
+# Crossfeed presets (Bauer stereophonic-to-binaural, the classic bs2b settings):
+# name: (cutoff Hz, how far below the direct sound the crossfed low frequencies are, in dB)
+CROSSFEED = {
+    "light": (650, 9.5),    # Jan Meier
+    "medium": (700, 6.0),   # Chu Moy
+    "strong": (700, 4.5),   # bs2b default
+}
+# Every rate the graph may run at; bq_raw uses the set matching the current rate.
+CROSSFEED_RATES = (44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000)
+
+
+def crossfeed_gains(feed_db: float) -> tuple[float, float, float]:
+    """(direct gain, cross gain, treble shelf dB) at low frequencies; direct + cross = 1."""
+    ratio = 10 ** (-feed_db / 20)
+    direct = 1 / (1 + ratio)
+    cross = ratio / (1 + ratio)
+    return direct, cross, -20 * math.log10(direct)
+
+
+def crossfeed_coefficients(fc: float, feed_db: float, rate: float) -> tuple[tuple, tuple]:
+    """First-order direct-path shelf and cross-path low-pass, as biquad coefficients.
+
+    Analog prototypes (w = 2*pi*fc): direct (s + d*w)/(s + w), cross c*w/(s + w).
+    With d + c = 1 they sum to exactly 1, so sound that's the same in both
+    channels (centred) is unchanged at every frequency. The low-pass also
+    delays the crossfed bass by 1/w (~0.23 ms at 700 Hz): the time difference
+    between the ears, without a separate delay that would make centred sound
+    dip. Bilinear transform with prewarping at fc.
+    """
+    d, c, _ = crossfeed_gains(feed_db)
+    K = math.tan(math.pi * fc / rate)
+    a0, a1 = 1 + K, K - 1
+    direct = ((1 + d * K) / a0, (d * K - 1) / a0, 0.0, 1.0, a1 / a0, 0.0)
+    cross = (c * K / a0, c * K / a0, 0.0, 1.0, a1 / a0, 0.0)
+    return direct, cross
+
+
+def _bq_raw(name: str, which: int, fc: float, feed: float) -> str:
+    sets = []
+    for rate in CROSSFEED_RATES:
+        b0, b1, b2, a0, a1, a2 = crossfeed_coefficients(fc, feed, rate)[which]
+        sets.append(f"{{ rate = {rate} b0 = {b0:.12g} b1 = {b1:.12g} b2 = {b2:.12g} "
+                    f"a0 = {a0:.12g} a1 = {a1:.12g} a2 = {a2:.12g} }}")
+    return (f"{{ type = builtin name = {name} label = bq_raw config = {{ coefficients = [ "
+            + " ".join(sets) + " ] } }")
+
+
+def _crossfeed_nodes(preset: str, ind: str) -> tuple[list[str], list[str], list[str], list[str]]:
+    """Builtin nodes for crossfeed. Returns (nodes, links, inputs, outputs)."""
+    fc, feed = CROSSFEED[preset]
+    nodes, links = [], []
+    for ch in ("L", "R"):
+        nodes += [
+            f"{{ type = builtin name = cf_in{ch} label = copy }}",
+            _bq_raw(f"cf_direct{ch}", 0, fc, feed),
+            _bq_raw(f"cf_cross{ch}", 1, fc, feed),
+            f"{{ type = builtin name = cf_mix{ch} label = mixer "
+            f"control = {{ \"Gain 1\" = 1.0 \"Gain 2\" = 1.0 }} }}",
+        ]
+    for ch, other in (("L", "R"), ("R", "L")):
+        links += [
+            f'{{ output = "cf_in{ch}:Out" input = "cf_direct{ch}:In" }}',
+            f'{{ output = "cf_in{other}:Out" input = "cf_cross{ch}:In" }}',
+            f'{{ output = "cf_direct{ch}:Out" input = "cf_mix{ch}:In 1" }}',
+            f'{{ output = "cf_cross{ch}:Out" input = "cf_mix{ch}:In 2" }}',
+        ]
+    return ([ind + n for n in nodes], [ind + l for l in links],
+            ['"cf_inL:In"', '"cf_inR:In"'], ['"cf_mixL:Out"', '"cf_mixR:Out"'])
+
+
+def chain_description(device_name: str, profile_name: str | None, crossfeed: str | None) -> str:
+    parts = []
+    if profile_name:
+        parts.append(f"EQ ({profile_name})")
+    if crossfeed:
+        parts.append("crossfeed")
+    return device_name + " + " + " + ".join(parts)
+
+
+def render_conf(profile: Profile | None, profile_name: str | None, target: str,
+                device_name: str = "FiiO K7", crossfeed: str | None = None,
+                quality: int | None = None) -> str:
+    """The filter-chain config: EQ, crossfeed, or EQ then crossfeed."""
+    if profile is None and not crossfeed:
+        raise EqError("nothing to do: no EQ profile and no crossfeed")
+    ind = " " * 20
+    nodes, links, inputs, outputs = [], [], [], []
+    if profile is not None:
+        filters = [f"{{ type = bq_highshelf freq = 0 gain = {profile.safe_preamp:.2f} q = 1.0 }}"]
+        filters += [f"{{ type = {f.type} freq = {f.freq:g} gain = {f.gain:.2f} q = {f.q:g} }}"
+                    for f in profile.filters]
+        filter_lines = "\n".join(" " * 28 + f for f in filters)
+        nodes.append(f"""{ind}{{ type = builtin name = eq label = param_eq
+{ind}  config = {{
+{ind}    filters = [
+{filter_lines}
+{ind}    ]
+{ind}  }}
+{ind}}}""")
+        inputs, outputs = ['"eq:In 1"', '"eq:In 2"'], ['"eq:Out 1"', '"eq:Out 2"']
+    if crossfeed:
+        if crossfeed not in CROSSFEED:
+            raise EqError(f"unknown crossfeed preset {crossfeed!r}")
+        cf_nodes, cf_links, cf_in, cf_out = _crossfeed_nodes(crossfeed, ind)
+        nodes += cf_nodes
+        links += cf_links
+        if outputs:     # EQ first, then crossfeed
+            links += [f'{ind}{{ output = {o} input = {i} }}' for o, i in zip(outputs, cf_in)]
+        else:
+            inputs = cf_in
+        outputs = cf_out
+    q = f"\n                resample.quality = {quality}" if quality else ""
+    nl = "\n"
     return f"""{BASE_CONF}context.modules = [
     {{ name = libpipewire-module-rt args = {{ }} flags = [ ifexists nofail ] }}
     {{ name = libpipewire-module-protocol-native }}
@@ -276,32 +385,31 @@ def render_conf(profile: Profile, profile_name: str, target: str, device_name: s
     {{ name = libpipewire-module-adapter }}
     {{ name = libpipewire-module-filter-chain
         args = {{
-            node.description = {_q(device_name + " + EQ (" + profile_name + ")")}
+            node.description = {_q(chain_description(device_name, profile_name if profile else None, crossfeed))}
             media.name = {_q("k7ctl EQ")}
             audio.channels = 2
             audio.position = [ FL FR ]
             filter.graph = {{
                 nodes = [
-                    {{ type = builtin name = eq label = param_eq
-                      config = {{
-                        filters = [
-{filter_lines}
-                        ]
-                      }}
-                    }}
+{nl.join(nodes)}
                 ]
+                links = [
+{nl.join(links)}
+                ]
+                inputs = [ {" ".join(inputs)} ]
+                outputs = [ {" ".join(outputs)} ]
             }}
             capture.props = {{
                 node.name = {_q(NODE)}
                 media.class = Audio/Sink
-                device.icon-name = "audio-card"
+                device.icon-name = "audio-card"{q}
             }}
             playback.props = {{
                 node.name = {_q(NODE + ".output")}
                 node.passive = true
                 node.dont-fallback = true
                 stream.dont-remix = true
-                target.object = {_q(target)}
+                target.object = {_q(target)}{q}
             }}
         }}
     }}
@@ -354,11 +462,15 @@ def run_daemon(poll: float = 3.0) -> int:
     import signal
     import subprocess
 
-    name = selected_profile()
-    if not name:
-        print("k7ctl eq: no profile selected", file=sys.stderr)
-        return 1
-    profile = parse_profile(profile_path(name).read_text(errors="replace"))
+    from . import resample
+    state = load_state()
+    name = selected_profile() if state.get("enabled") else None
+    profile = parse_profile(profile_path(name).read_text(errors="replace")) if name else None
+    crossfeed = crossfeed_preset()
+    if profile is None and not crossfeed:
+        print("k7ctl eq: neither EQ nor crossfeed is on", file=sys.stderr)
+        return 0
+    quality = resample.quality()
     pw = shutil.which("pipewire") or "/usr/bin/pipewire"
     conf = runtime_conf_path()
     conf.parent.mkdir(parents=True, exist_ok=True)
@@ -380,8 +492,11 @@ def run_daemon(poll: float = 3.0) -> int:
                 if child:
                     child.terminate()
                     child.wait(timeout=5)
-                conf.write_text(render_conf(profile, name, current, device.display_name()))
-                print(f"k7ctl eq: {name} -> {current}", flush=True)
+                conf.write_text(render_conf(profile, name, current, device.display_name(),
+                                            crossfeed=crossfeed,
+                                            quality=quality if quality != 4 else None))
+                print(f"k7ctl eq: {chain_description('', name, crossfeed).lstrip(' +')} -> {current}",
+                      flush=True)
                 child = subprocess.Popen([pw, "-c", str(conf)])
                 target = current
                 was_default = load_state().get("default", True)
@@ -419,21 +534,15 @@ def _wait_for_node(timeout: float = 8.0) -> int | None:
     return None
 
 
-def enable(name: str | None = None, make_default: bool = True) -> str:
-    """Turn EQ on with a profile (or the selected one). Returns the profile name."""
+def crossfeed_preset() -> str | None:
+    cf = load_state().get("crossfeed")
+    return cf if cf in CROSSFEED else None
+
+
+def _start(make_default: bool = True) -> None:
+    """(Re)start the processing service with the current state."""
     if not shutil.which("systemctl"):
         raise EqError("the EQ runs as a systemd user service, and systemctl wasn't found")
-    if name is not None:
-        if not profile_path(name).is_file():
-            raise EqError(f"no profile called {name!r}; see: k7ctl eq list")
-        save_state(profile=name)
-    name = selected_profile()
-    if not name:
-        raise EqError("pick a profile first: k7ctl eq on \"<name>\" "
-                      "(see k7ctl eq list, or get one with k7ctl eq search)")
-    parse_profile(profile_path(name).read_text(errors="replace"))
-    save_state(profile=name, enabled=True)
-
     unit = unit_path()
     unit.parent.mkdir(parents=True, exist_ok=True)
     unit.write_text(render_unit())
@@ -448,13 +557,11 @@ def enable(name: str | None = None, make_default: bool = True) -> str:
                       f"see: journalctl --user -u {SERVICE}")
     if make_default:
         pipewire.set_default(nid)
-    return name
 
 
-def disable() -> None:
+def _stop() -> None:
     d = pipewire.dump()
     eq_was_default = bool(d) and pipewire.parse_default_sink(d) == NODE
-    save_state(enabled=False)
     pwconf.systemctl_user("disable", "--now", SERVICE)
     unit = unit_path()
     if unit.is_file():
@@ -462,3 +569,53 @@ def disable() -> None:
         pwconf.systemctl_user("daemon-reload")
     if eq_was_default:
         pipewire.wait_and_set_default(None, timeout=5)
+
+
+def _apply(make_default: bool = True) -> None:
+    state = load_state()
+    if (state.get("enabled") and selected_profile()) or crossfeed_preset():
+        _start(make_default)
+    else:
+        _stop()
+
+
+def enable(name: str | None = None, make_default: bool = True) -> str:
+    """Turn EQ on with a profile (or the selected one). Returns the profile name."""
+    if name is not None:
+        if not profile_path(name).is_file():
+            raise EqError(f"no profile called {name!r}; see: k7ctl eq list")
+        save_state(profile=name)
+    name = selected_profile()
+    if not name:
+        raise EqError("pick a profile first: k7ctl eq on \"<name>\" "
+                      "(see k7ctl eq list, or get one with k7ctl eq search)")
+    parse_profile(profile_path(name).read_text(errors="replace"))
+    save_state(profile=name, enabled=True)
+    _start(make_default)
+    return name
+
+
+def disable() -> None:
+    """Turn the EQ off (crossfeed stays on if it is)."""
+    save_state(enabled=False)
+    _apply()
+
+
+def set_crossfeed(preset: str | None) -> str | None:
+    """Turn crossfeed on with a preset, or off with None/"off". Returns the preset."""
+    if preset in (None, "off"):
+        save_state(crossfeed="off")
+    elif preset in CROSSFEED:
+        save_state(crossfeed=preset)
+    else:
+        raise EqError(f"unknown crossfeed preset {preset!r} (light, medium, strong or off)")
+    _apply()
+    return crossfeed_preset()
+
+
+def restart_if_running() -> bool:
+    """Re-read settings (e.g. resampler quality) if the service is running."""
+    if is_running():
+        _start(make_default=load_state().get("default", True))
+        return True
+    return False

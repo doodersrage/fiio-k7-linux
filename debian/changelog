@@ -1,3 +1,10 @@
+k7ctl (0.4.0) unstable; urgency=medium
+
+  * Headphone crossfeed (bs2b presets, centred sound unchanged).
+  * Resampler quality presets for when rates have to be converted.
+
+ -- Robert McDowell <doodersrage@gmail.com>  Wed, 04 Nov 2026 19:00:00 -0500
+
 k7ctl (0.3.0) unstable; urgency=medium
 
   * Exclusive mode: release the DAC from PipeWire for direct players (native DSD).

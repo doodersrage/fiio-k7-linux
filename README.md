@@ -9,7 +9,8 @@ FiiO's software for the K7 DAC/headphone amp is Windows-only. This project gives
   native rate of what's playing (44.1 kHz up to 384 kHz) and checks that PipeWire's volume isn't throwing away resolution.
 - **"Why isn't it bit-perfect?"**: lists every app playing to the K7, marks the ones being resampled, and names the app
   that's holding the K7 at the other rate.
-- **Headphone EQ** with profiles for thousands of headphones from [AutoEQ](https://github.com/jaakkopasanen/AutoEq).
+- **Headphone EQ** with profiles for thousands of headphones from [AutoEQ](https://github.com/jaakkopasanen/AutoEq),
+  and **crossfeed** for a more natural, less "inside your head" stereo image.
 - **Keep awake**: stops the start of sounds being cut off after the K7 has been idle.
 - **Exclusive mode** for players that need the K7 to themselves (native DSD).
 - **Latency presets** against crackles at high sample rates (or for low-latency gaming).
@@ -99,6 +100,8 @@ k7ctl tray       # tray icon: click it to open the window; "Start at login" is i
 | `k7ctl eq get "<headphone>" [--source …] [--on]` | Download a profile (and turn EQ on with it). |
 | `k7ctl eq import <file>` | Import an Equalizer APO / `ParametricEQ.txt` file. |
 | `k7ctl eq on [profile]` / `off` / `toggle` | Turn the EQ on or off. `eq list`, `eq status`, `eq remove` manage profiles. |
+| `k7ctl crossfeed [light\|medium\|strong\|off]` | Headphone crossfeed (see below). |
+| `k7ctl resample [default\|high\|max] [--restart]` | Resampler quality, for when rates have to be converted (see below). |
 | `k7ctl firmware [--open]` | Installed firmware version and how to update it; `--open` opens FiiO's download page. |
 | `k7ctl exclusive on` / `off` | Release the K7 from PipeWire for a player that uses it directly (native DSD). |
 | `k7ctl devices` / `k7ctl use <id\|auto>` | List USB sound cards / use another DAC (see below). |
@@ -164,6 +167,48 @@ bit-perfect**; `k7ctl status` says so.
 - The window plots the selected profile: solid is what you hear (with the preamp), dashed is the correction's
   shape. The plot uses the same filter maths as PipeWire; it was checked against tones measured through
   PipeWire's EQ to within 0.01 dB.
+
+## Crossfeed
+
+On speakers each ear hears both speakers; on headphones each ear hears only one channel, so recordings with
+instruments hard-panned to one side can sound unnatural and tiring. Crossfeed mixes a little of each channel's bass
+into the other, slightly delayed, as speakers would.
+
+```sh
+k7ctl crossfeed medium        # light, medium, strong or off
+```
+
+| Preset | Origin | One-sided bass reaches the other ear |
+|---|---|---|
+| light | Jan Meier (650 Hz) | 9.7 dB lower |
+| medium | Chu Moy (700 Hz) | 6.2 dB lower |
+| strong | bs2b default (700 Hz) | 4.7 dB lower |
+
+The filters are first-order and complementary, so **centred sound is unchanged** at every frequency: measured through
+PipeWire, ±0.00 dB from 50 Hz to 12 kHz. (A textbook crossfeed with a separate delay puts a 4 to 6 dB notch in the
+mids of centred sound; this one doesn't.) Crossfeed runs in the same service as the EQ, on its own or after it, and
+like the EQ it means playback isn't bit-perfect.
+
+## Resampler quality
+
+With native rates on, music normally reaches the K7 unconverted, so this doesn't apply. PipeWire still converts when
+two apps play at different rates, or with the EQ or crossfeed on. Its default quality is very clean (errors about
+140 dB below the music), but it rolls off the very top of the treble. Measured, a 44.1 kHz tone converted to
+48 kHz through PipeWire:
+
+| Quality | 19.5 kHz | 20.5 kHz | 21.5 kHz |
+|---|---|---|---|
+| default (4) | -1.4 dB | -5.5 dB | -14.3 dB |
+| high (10) | 0.0 dB | 0.0 dB | -5.3 dB |
+| max (14) | 0.0 dB | 0.0 dB | 0.0 dB |
+
+```sh
+k7ctl resample high --restart
+```
+
+That's at the edge of hearing, so expect a subtle difference at most. It costs a little more CPU while converting.
+Apps pick it up when they start; `--restart` (or *Yes* in the window) restarts PipeWire's PulseAudio service so
+running apps like Firefox use it right away, which interrupts their sound for a moment.
 
 ## Launcher actions and shortcuts
 
@@ -274,6 +319,8 @@ Undo the settings first (each removes only k7ctl's own files), then remove the p
 k7ctl eq off
 k7ctl keepawake off
 k7ctl latency default
+k7ctl crossfeed off
+k7ctl resample default --restart
 k7ctl rates disable
 rm -rf ~/.config/autostart/k7ctl-tray.desktop ~/.config/k7ctl ~/.local/share/k7ctl ~/.cache/k7ctl   # settings and EQ profiles
 sudo pacman -R k7ctl          # or: sudo apt remove k7ctl / sudo dnf remove k7ctl / pipx uninstall k7ctl

@@ -105,6 +105,7 @@ def test_daemon_follows_renamed_k7(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "run"))
     eq.save_profile("P", HD600)
+    eq.save_state(enabled=True)
 
     names = iter([None, "k7.2", "k7.2", "k7", "STOP"])
     started, terminated = [], []

@@ -144,3 +144,26 @@ def test_curve_device_picker_and_diagnostics(win, monkeypatch):
     win.notify_rate_cb.setChecked(True)
     from k7ctl import settings
     assert settings.get("notify_rate") is True
+
+
+def test_crossfeed_and_resampler_controls(win, monkeypatch):
+    calls = []
+    monkeypatch.setattr(window.eq, "set_crossfeed", lambda p: calls.append(("cf", p)) or p)
+    idx = win.crossfeed_combo.findData("medium")
+    win.crossfeed_combo.setCurrentIndex(idx)
+    win.crossfeed_combo.activated.emit(idx)
+    assert calls == [("cf", "medium")] and "Crossfeed on: Medium" in win.message()
+
+    monkeypatch.setattr(window.W.QMessageBox, "question",
+                        lambda *a, **k: window.W.QMessageBox.StandardButton.No)
+    monkeypatch.setattr(window.resample, "apply", lambda name, restart=False: calls.append(("rs", name, restart)))
+    monkeypatch.setattr(window.eq, "restart_if_running", lambda: False)
+    idx = win.resample_combo.findData("high")
+    win.resample_combo.setCurrentIndex(idx)
+    win.resample_combo.activated.emit(idx)
+    assert calls[-1] == ("rs", "high", False) and "Resampler quality: High" in win.message()
+
+    win.current["s"] = make_snap(crossfeed="light")
+    win.refresh()
+    assert "crossfeed: Light" in win.subtitle.text()
+    assert "crossfeed is on" in win.bitperfect.text()

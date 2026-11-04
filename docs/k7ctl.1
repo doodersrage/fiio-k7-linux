@@ -113,8 +113,23 @@ uses bigger buffers, which fixes crackles at high sample rates;
 smaller ones for games and calls. Without a preset, shows the current one. Applied immediately
 and saved in
 .IR ~/.config/pipewire/pipewire.conf.d/51\-k7ctl\-latency.conf .
-.SS Headphone EQ
-With EQ on, playback is processed and no longer bit\-perfect.
+.TP
+.BR resample " [default|high|max] [" \-\-restart ]
+Resampler quality for when PipeWire has to convert sample rates (two apps at different rates, EQ or
+crossfeed on). The default (4) cuts treble from about 19 kHz when converting;
+.B high
+(10) is flat to 20.5 kHz,
+.B max
+(14) to 21.5 kHz. Apps use it when they start;
+.B \-\-restart
+restarts PipeWire's PulseAudio service so running apps use it now (their sound stops briefly).
+.SS Headphone EQ and crossfeed
+With EQ or crossfeed on, playback is processed and no longer bit\-perfect.
+.TP
+.BR crossfeed " [light|medium|strong|off]"
+Mix a little of each channel's bass into the other, as with speakers (the classic bs2b settings:
+light 650 Hz / 9.5 dB, medium 700 Hz / 6 dB, strong 700 Hz / 4.5 dB). Centred sound is unchanged. Runs on
+its own or after the EQ.
 .TP
 .BI "eq search " headphone
 Search the AutoEQ database of headphone profiles.

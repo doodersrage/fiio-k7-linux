@@ -67,6 +67,19 @@ class Tray:
         self.m_eq = self.menu.addMenu(tr("Headphone EQ"))
         self.m_eq.aboutToShow.connect(self.build_eq_menu)
 
+        self.m_cf = self.menu.addMenu(tr("Crossfeed"))
+        self.g_cf = QtGui.QActionGroup(self.m_cf)
+        self.cf_actions = {}
+        from .window import CROSSFEED_NAMES
+        for name in ("off", *eq.CROSSFEED):
+            a = QtGui.QAction(CROSSFEED_NAMES[name], self.m_cf)
+            a.setCheckable(True)
+            a.triggered.connect(lambda _=False, n=name: self.run(
+                lambda: eq.set_crossfeed(None if n == "off" else n)))
+            self.g_cf.addAction(a)
+            self.m_cf.addAction(a)
+            self.cf_actions[name] = a
+
         self.m_lat = self.menu.addMenu(tr("Latency"))
         self.g_lat = QtGui.QActionGroup(self.m_lat)
         self.lat_actions = {}
@@ -201,6 +214,9 @@ class Tray:
                 detail.append(tr("released for direct players"))
             if s.eq_on:
                 detail.append(tr("EQ: {profile}").format(profile=s.eq_profile))
+            if s.crossfeed:
+                from .window import CROSSFEED_NAMES
+                detail.append(tr("crossfeed: {preset}").format(preset=CROSSFEED_NAMES[s.crossfeed]))
             elif s.bit_perfect:
                 detail.append(tr("bit-perfect"))
             if s.sink and s.sink.volume is not None:
@@ -222,6 +238,10 @@ class Tray:
         self.a_excl.setEnabled(connected)
         for name, a in self.lat_actions.items():
             a.setChecked(name == s.latency)
+        cf = eq.crossfeed_preset() or "off"
+        for name, a in self.cf_actions.items():
+            a.setChecked(name == cf)
+        self.m_cf.setEnabled(connected)
 
     # ------------------------------------------------------------ menus
     def build_eq_menu(self):

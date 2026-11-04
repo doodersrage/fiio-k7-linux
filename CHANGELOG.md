@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+- **Crossfeed** for headphones: `k7ctl crossfeed light|medium|strong|off` (also in the window and tray), the classic
+  bs2b settings. Built so that centred sound is exactly unchanged at every frequency (measured through PipeWire:
+  ±0.00 dB), while one-sided bass reaches the other ear 9.7 / 6.2 / 4.7 dB lower. Runs on its own or after the EQ.
+- **Resampler quality**: `k7ctl resample default|high|max [--restart]` (also in the window) for when PipeWire has to
+  convert rates (two apps at different rates, EQ/crossfeed on). Measured 44.1 → 48 kHz: the default cuts a 20.5 kHz
+  tone by 5.5 dB; "high" by 0.01 dB. Also used inside the EQ/crossfeed.
+
 ## 0.3.0
 
 - **Exclusive mode** for native DSD: `k7ctl exclusive on/off` (also in the tray and window) makes PipeWire

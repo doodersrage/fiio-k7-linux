@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import sys
 
-from . import (device, eq, exclusive, firmware, keepawake, latency, pipewire, rates, settings,
-               snapshot)
+from . import (device, eq, exclusive, firmware, keepawake, latency, pipewire, rates, resample,
+               settings, snapshot)
 from .curvewidget import EqCurve
 from .device import format_rate
 from .i18n import tr
@@ -29,6 +29,15 @@ LATENCY_DESC = {
     "default": tr("PipeWire's defaults"),
     "stable": tr("bigger buffers: fixes crackles at high sample rates, more latency"),
     "low-latency": tr("small buffers for games and calls; may crackle at high rates"),
+}
+
+
+CROSSFEED_NAMES = {"off": tr("Off"), "light": tr("Light"), "medium": tr("Medium"), "strong": tr("Strong")}
+RESAMPLE_NAMES = {"default": tr("Default (PipeWire's)"), "high": tr("High"), "max": tr("Maximum")}
+RESAMPLE_DESC = {
+    "default": tr("Very clean, but treble rolls off from about 19 kHz when converting."),
+    "high": tr("Flat to 20.5 kHz when converting; a little more CPU."),
+    "max": tr("Flat to 21.5 kHz when converting; most CPU."),
 }
 
 
@@ -230,6 +239,14 @@ class Window(W.QMainWindow):
         self.latency_hint = hint()
         form.addRow(self.latency_hint)
 
+        self.resample_combo = W.QComboBox()
+        for name in resample.PRESETS:
+            self.resample_combo.addItem(RESAMPLE_NAMES[name], name)
+        self.resample_combo.activated.connect(self.set_resample)
+        form.addRow(tr("Resampler:"), self.resample_combo)
+        self.resample_hint = hint()
+        form.addRow(self.resample_hint)
+
         self.notify_rate_cb = W.QCheckBox(tr("When the sample rate changes"))
         self.notify_rate_cb.toggled.connect(lambda on: self.save_setting(notify_rate=on))
         self.notify_res_cb = W.QCheckBox(tr("When something starts being resampled"))
@@ -242,7 +259,7 @@ class Window(W.QMainWindow):
         return box
 
     def build_eq(self) -> W.QGroupBox:
-        box = self.eq_box = W.QGroupBox(tr("Headphone EQ"))
+        box = self.eq_box = W.QGroupBox(tr("Headphone EQ and crossfeed"))
         lay = W.QVBoxLayout(box)
 
         top = W.QHBoxLayout()
@@ -268,8 +285,20 @@ class Window(W.QMainWindow):
         self.curve_hint = hint(tr("Solid: what you hear (with the preamp that prevents clipping). "
                                "Dashed: the correction's shape."))
         lay.addWidget(self.curve_hint)
-        lay.addWidget(hint(tr("With EQ on, playback is processed and no longer bit-perfect. "
-                           "Turn it off for bit-perfect listening.")))
+        cf = W.QHBoxLayout()
+        cf.addWidget(W.QLabel(tr("Crossfeed:")))
+        self.crossfeed_combo = W.QComboBox()
+        for name in ("off", *eq.CROSSFEED):
+            self.crossfeed_combo.addItem(CROSSFEED_NAMES[name], name)
+        self.crossfeed_combo.activated.connect(self.set_crossfeed)
+        cf.addWidget(self.crossfeed_combo)
+        cf.addStretch(1)
+        lay.addLayout(cf)
+        lay.addWidget(hint(tr("Crossfeed mixes a little of each channel's bass into the other, as with speakers, "
+                              "so hard-panned recordings sound less 'inside your head'. Centred sound is unchanged. "
+                              "Light, medium and strong are the classic bs2b settings.")))
+        lay.addWidget(hint(tr("With EQ or crossfeed on, playback is processed and no longer bit-perfect. "
+                              "Turn them off for bit-perfect listening.")))
 
         search = W.QHBoxLayout()
         self.search_edit = W.QLineEdit()
@@ -409,10 +438,10 @@ class Window(W.QMainWindow):
                 parts.append(tr("released for direct players"))
             if s.eq_on:
                 parts.append(tr("EQ: {profile}").format(profile=s.eq_profile))
-            elif bp:
-                parts.append(tr("bit-perfect"))
-            elif bp is False:
-                parts.append(tr("not bit-perfect"))
+            if s.crossfeed:
+                parts.append(tr("crossfeed: {preset}").format(preset=CROSSFEED_NAMES[s.crossfeed]))
+            if not s.processing and bp is not None:      # EQ/crossfeed already say why
+                parts.append(tr("bit-perfect") if bp else tr("not bit-perfect"))
             self.subtitle.setText(", ".join(parts))
             self.playing.setText(desc)
             self.fmt.setText(tr("{format}, {channels} channels").format(format=st.format, channels=st.channels)
@@ -424,6 +453,8 @@ class Window(W.QMainWindow):
                 reasons = []
                 if s.eq_on:
                     reasons.append(tr("EQ is on"))
+                if s.crossfeed:
+                    reasons.append(tr("crossfeed is on"))
                 if s.resampled:
                     reasons.append(tr("resampled"))
                 if s.sink and s.sink.volume is not None and (s.sink.volume < 0.999 or s.sink.muted):
@@ -462,6 +493,12 @@ class Window(W.QMainWindow):
         elif s.latency == "custom":
             self.latency_hint.setText(tr("Currently a custom setting (not from k7ctl)."))
         self._set(self.eq_cb, s.eq_on)
+        self.crossfeed_combo.setCurrentIndex(max(0, self.crossfeed_combo.findData(eq.crossfeed_preset() or "off")))
+        rs = s.resample if s.resample in resample.PRESETS else None
+        if rs:
+            self.resample_combo.setCurrentIndex(self.resample_combo.findData(rs))
+            self.resample_hint.setText(RESAMPLE_DESC[rs] + " " + tr("Used only when PipeWire has to convert "
+                                                                   "sample rates."))
         self.fill_profiles()
 
     def fill_streams(self, s: snapshot.Snapshot):
@@ -549,6 +586,8 @@ class Window(W.QMainWindow):
         self.volume_btn.setEnabled(not busy and bool(sink and sink.volume is not None
                                                      and (sink.volume < 0.999 or sink.muted)))
         self.eq_cb.setEnabled(not busy and connected and (has_profiles or self.eq_cb.isChecked()))
+        self.crossfeed_combo.setEnabled(not busy and connected)
+        self.resample_combo.setEnabled(not busy)
         self.profile_combo.setEnabled(not busy and has_profiles)
         self.remove_btn.setEnabled(not busy and has_profiles)
         self.import_btn.setEnabled(not busy)
@@ -618,6 +657,34 @@ class Window(W.QMainWindow):
             self.act(tr("Releasing the K7 from PipeWire"), exclusive.enable, "{}")
         else:
             self.act(tr("Giving the K7 back to PipeWire"), exclusive.disable, "{}")
+
+    def set_crossfeed(self, _index: int):
+        name = self.crossfeed_combo.currentData()
+        if name == (eq.crossfeed_preset() or "off"):
+            return
+        if name == "off":
+            self.act(tr("Turning crossfeed off"), lambda: eq.set_crossfeed(None), tr("Crossfeed off."))
+        else:
+            self.act(tr("Turning crossfeed on ({preset})").format(preset=CROSSFEED_NAMES[name]),
+                     lambda: eq.set_crossfeed(name),
+                     tr("Crossfeed on: {preset}. Playback is processed (not bit-perfect).").format(
+                         preset=CROSSFEED_NAMES[name]))
+
+    def set_resample(self, _index: int):
+        name = self.resample_combo.currentData()
+        if name == resample.current():
+            return
+        now = W.QMessageBox.question(
+            self, tr("Resampler quality"),
+            tr("Apply it to running apps now? This restarts PipeWire's PulseAudio service, so sound from "
+               "Firefox and other apps stops for a moment. Otherwise it applies to apps started from now on."))
+        restart = now == W.QMessageBox.StandardButton.Yes
+
+        def job():
+            resample.apply(name, restart=restart)
+            eq.restart_if_running()
+        self.act(tr("Setting the resampler quality"), job,
+                 tr("Resampler quality: {preset}.").format(preset=RESAMPLE_NAMES[name]))
 
     def set_latency(self, _index: int):
         name = self.latency_combo.currentData()

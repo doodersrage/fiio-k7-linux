@@ -5,7 +5,7 @@ _k7ctl() {
         cur=${COMP_WORDS[COMP_CWORD]}; prev=${COMP_WORDS[COMP_CWORD-1]}
         words=("${COMP_WORDS[@]}"); cword=$COMP_CWORD
     }
-    local cmds="status rates latency keepawake exclusive eq volume-max setup firmware devices use diag gui tray"
+    local cmds="status rates latency resample keepawake exclusive eq crossfeed volume-max setup firmware devices use diag gui tray"
     # the command is the first word that isn't a global option (--notify)
     local ci=1 cmd=
     while [ "$ci" -lt "$cword" ] && [[ ${words[ci]} == --* ]]; do ci=$((ci + 1)); done
@@ -27,6 +27,8 @@ _k7ctl() {
         latency)   [ "$pos" -eq 1 ] && COMPREPLY=($(compgen -W "default stable low-latency" -- "$cur")) ;;
         keepawake) COMPREPLY=($(compgen -W "on off status --no-restart" -- "$cur")) ;;
         exclusive) [ "$pos" -eq 1 ] && COMPREPLY=($(compgen -W "on off status" -- "$cur")) ;;
+        crossfeed) [ "$pos" -eq 1 ] && COMPREPLY=($(compgen -W "off light medium strong" -- "$cur")) ;;
+        resample)  COMPREPLY=($(compgen -W "default high max --restart" -- "$cur")) ;;
         setup)     COMPREPLY=($(compgen -W "--yes -y --help" -- "$cur")) ;;
         firmware)  COMPREPLY=($(compgen -W "--open" -- "$cur")) ;;
         use)

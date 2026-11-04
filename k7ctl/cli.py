@@ -12,7 +12,7 @@ import sys
 import time
 
 from . import (__version__, device, eq, exclusive, firmware, keepawake, latency, pipewire,
-               rates, snapshot)
+               rates, resample, snapshot)
 from .device import format_rate
 
 
@@ -77,6 +77,9 @@ def status_lines(s: snapshot.Snapshot) -> list[str]:
         lines.append(f"  EQ:           on ({s.eq_profile}), not bit-perfect")
     else:
         lines.append("  EQ:           off")
+    lines.append(f"  Crossfeed:    {s.crossfeed + ', not bit-perfect' if s.crossfeed else 'off'}")
+    if s.resample:
+        lines.append(f"  Resampler:    {s.resample} (used only when rates have to be converted)")
     bp = s.bit_perfect
     if bp is not None:
         lines.append(f"  Bit-perfect:  {'yes' if bp else 'no'}")
@@ -120,6 +123,8 @@ def json_status(s: snapshot.Snapshot) -> str:
         },
         "keepawake": s.keepawake,
         "eq": {"on": s.eq_on, "profile": s.eq_profile},
+        "crossfeed": s.crossfeed,
+        "resample": s.resample,
     }, indent=2)
 
 
@@ -381,6 +386,52 @@ def cmd_firmware(args) -> int:
     return 0
 
 
+def cmd_crossfeed(args) -> int:
+    if args.preset is None:
+        cur = eq.crossfeed_preset()
+        running = snapshot.take(with_volume=False).crossfeed
+        print(f"Crossfeed: {cur or 'off'}" + (" (running)" if running else
+                                              " (not running: is the DAC connected?)" if cur else ""))
+        for name, (fc, feed) in eq.CROSSFEED.items():
+            mark = "*" if name == cur else " "
+            print(f" {mark} {name:7s} {fc} Hz, crossfed bass {feed} dB below the direct sound")
+        return 0
+    try:
+        if args.preset != "off" and not device.find():
+            return _no_k7()
+        result = eq.set_crossfeed(args.preset)
+    except eq.EqError as e:
+        return _err(str(e))
+    if result:
+        print(f"Crossfeed on: {result}. Playback is processed (not bit-perfect).")
+    else:
+        print("Crossfeed off.")
+    return 0
+
+
+def cmd_resample(args) -> int:
+    if args.preset is None:
+        cur = resample.current()
+        print(f"Resampler quality: {cur} ({resample.quality()})")
+        for name, (q, desc) in resample.PRESETS.items():
+            mark = "*" if name == cur else " "
+            print(f" {mark} {name:8s} {q:2d}  {desc}")
+        print("Used only when PipeWire has to convert sample rates.")
+        return 0
+    if args.restart:
+        print("Restarting PipeWire's PulseAudio service: sound from Firefox and other apps stops briefly.")
+    restarted = resample.apply(args.preset, restart=args.restart)
+    print(f"Resampler quality: {args.preset} ({resample.PRESETS[args.preset][0]}).")
+    if eq.restart_if_running():
+        print("The EQ/crossfeed uses it now.")
+    if restarted:
+        print("Applied to PulseAudio apps (Firefox, Spotify…) now; other apps when they next start.")
+    else:
+        print("Applies to apps started from now on. To apply it to running apps now: "
+              "k7ctl resample " + args.preset + " --restart")
+    return 0
+
+
 def cmd_exclusive(args) -> int:
     a = args.action
     try:
@@ -512,6 +563,16 @@ def build_parser() -> argparse.ArgumentParser:
     f = sub.add_parser("firmware", help="show the firmware version and how to update it")
     f.add_argument("--open", action="store_true", help="open FiiO's firmware download page")
     f.set_defaults(func=cmd_firmware)
+
+    cf = sub.add_parser("crossfeed", help="headphone crossfeed (less 'inside your head' sound)")
+    cf.add_argument("preset", nargs="?", choices=["off", *eq.CROSSFEED])
+    cf.set_defaults(func=cmd_crossfeed)
+
+    rs = sub.add_parser("resample", help="resampler quality, when rates have to be converted")
+    rs.add_argument("preset", nargs="?", choices=list(resample.PRESETS))
+    rs.add_argument("--restart", action="store_true",
+                    help="restart PipeWire's PulseAudio service so running apps use it now")
+    rs.set_defaults(func=cmd_resample)
 
     ex = sub.add_parser("exclusive", help="release the DAC from PipeWire for direct players (native DSD)")
     ex.add_argument("action", nargs="?", choices=["on", "off", "status"], default="status")

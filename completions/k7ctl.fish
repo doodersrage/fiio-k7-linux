@@ -1,5 +1,5 @@
 # fish completion for k7ctl
-set -l cmds status rates latency keepawake exclusive eq volume-max setup firmware devices use diag gui tray
+set -l cmds status rates latency resample keepawake exclusive eq crossfeed volume-max setup firmware devices use diag gui tray
 set -l eqacts status list search get import remove on off toggle
 
 function __k7ctl_profiles
@@ -34,6 +34,11 @@ complete -c k7ctl -n "__fish_seen_subcommand_from rates" -a 'enable disable stat
 complete -c k7ctl -n "__fish_seen_subcommand_from latency" -a 'default stable low-latency'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a exclusive -d 'Release the DAC for direct players'
 complete -c k7ctl -n "__fish_seen_subcommand_from exclusive" -a 'on off status'
+complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a crossfeed -d 'Headphone crossfeed'
+complete -c k7ctl -n "__fish_seen_subcommand_from crossfeed" -a 'off light medium strong'
+complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a resample -d 'Resampler quality'
+complete -c k7ctl -n "__fish_seen_subcommand_from resample" -a 'default high max'
+complete -c k7ctl -n "__fish_seen_subcommand_from resample" -l restart -d "Restart PipeWire's PulseAudio service now"
 complete -c k7ctl -n "__fish_seen_subcommand_from keepawake" -a 'on off status'
 complete -c k7ctl -n "__fish_seen_subcommand_from keepawake" -l no-restart -d "Don't restart WirePlumber now"
 complete -c k7ctl -n "__fish_seen_subcommand_from firmware" -l open -d "Open FiiO's firmware download page"

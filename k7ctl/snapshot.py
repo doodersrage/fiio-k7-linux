@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from . import device, eq, exclusive, keepawake, latency, pipewire, pwconf
+from . import device, eq, exclusive, keepawake, latency, pipewire, pwconf, resample
 from .device import format_rate
 
 
@@ -23,6 +23,8 @@ class Snapshot:
     keepawake_config: bool
     eq_profile: str | None
     eq_on: bool
+    crossfeed: str | None = None  # crossfeed preset, while it's running
+    resample: str | None = None   # resampler quality preset
     exclusive: bool = False       # PipeWire released the DAC (profile "off")
     direct: str | None = None     # a non-PipeWire program using the DAC directly
 
@@ -40,6 +42,11 @@ class Snapshot:
         return self.sink.resampled() if self.sink else []
 
     @property
+    def processing(self) -> bool:
+        """EQ and/or crossfeed is changing the sound."""
+        return self.eq_on or bool(self.crossfeed)
+
+    @property
     def single_rate(self) -> bool:
         return self.allowed_rates is not None and len(self.allowed_rates) <= 1
 
@@ -50,7 +57,7 @@ class Snapshot:
             return True               # a player has the DAC to itself: nothing in between
         if not self.playing or not self.sink:
             return None
-        if self.eq_on or self.resampled:
+        if self.processing or self.resampled:
             return False
         if self.sink.volume is not None and (self.sink.volume < 0.999 or self.sink.muted):
             return False
@@ -92,6 +99,8 @@ class Snapshot:
             text += "*"
         if self.eq_on:
             text += " EQ"
+        if self.crossfeed:
+            text += " XF"
         if self.exclusive and not self.playing:
             text += " (released)"
         return text
@@ -101,7 +110,7 @@ class Snapshot:
             return "disconnected"
         if self.exclusive or self.direct:
             return "playing" if self.playing else "idle"
-        if self.eq_on:
+        if self.processing:
             return "eq"
         if self.resampled:
             return "resampled"
@@ -132,7 +141,10 @@ def take(with_volume: bool = True) -> Snapshot:
         keepawake=keepawake.active_on_node(d) if d else None,
         keepawake_config=keepawake.is_enabled(),
         eq_profile=state.get("profile"),
-        eq_on=bool(sink and sink.eq_active),
+        eq_on=bool(sink and sink.eq_active and state.get("enabled")),
+        crossfeed=(state.get("crossfeed") if sink and sink.eq_active
+                   and state.get("crossfeed") in eq.CROSSFEED else None),
+        resample=resample.current(),
         exclusive=exclusive.is_on(d) if d else False,
         direct=exclusive.direct_user(k7.card_index) if k7 else None,
     )
