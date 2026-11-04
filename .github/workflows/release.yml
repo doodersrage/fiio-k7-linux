@@ -1,0 +1,70 @@
+name: release
+
+# Push a tag like v0.2.0 to publish a GitHub release with .deb, .rpm and Arch packages.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential debhelper dh-python python3-pytest
+      - run: packaging/build-deb.sh dist
+      - uses: actions/upload-artifact@v4
+        with: {name: deb, path: dist/*.deb}
+
+  rpm:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - run: dnf install -y git rpm-build python3-devel python3-pytest
+      - uses: actions/checkout@v5
+      - run: packaging/build-rpm.sh dist
+      - uses: actions/upload-artifact@v4
+        with: {name: rpm, path: dist/*.rpm}
+
+  arch:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm git
+      - uses: actions/checkout@v5
+      - run: packaging/build-arch.sh dist
+      - uses: actions/upload-artifact@v4
+        with: {name: arch, path: dist/*.pkg.tar.zst}
+
+  release:
+    needs: [deb, rpm, arch]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with: {path: dist, merge-multiple: true}
+      - name: Check the tag matches the version
+        run: |
+          v=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' k7ctl/__init__.py)
+          test "v$v" = "$GITHUB_REF_NAME"
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v v="${GITHUB_REF_NAME#v}" '$0 == "## " v {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "CHANGELOG.md has no '## ${GITHUB_REF_NAME#v}' section"; exit 1; }
+          cat >> notes.md <<'MD'
+
+          ### Install
+          - **Arch Linux**: download the `.pkg.tar.zst` below, then `sudo pacman -U ./k7ctl-*-any.pkg.tar.zst`
+          - **Debian / Ubuntu**: download the `.deb` below, then `sudo apt install ./k7ctl_*_all.deb`
+          - **Fedora**: download the `.rpm` below, then `sudo dnf install ./k7ctl-*.noarch.rpm`
+          - **Others**: see the [README](https://github.com/doodersrage/fiio-k7-linux#install)
+
+          For the tray icon, also install PyQt6 (`python-pyqt6` / `python3-pyqt6`). To verify a download: `sha256sum -c SHA256SUMS --ignore-missing`
+          MD
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - run: gh release create "$GITHUB_REF_NAME" dist/* --title "k7ctl ${GITHUB_REF_NAME#v}" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}

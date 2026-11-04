@@ -1,0 +1,128 @@
+.TH K7CTL 1 "November 2026" "k7ctl" "User Commands"
+.SH NAME
+k7ctl \- FiiO K7 status, bit\-perfect setup and headphone EQ for Linux
+.SH SYNOPSIS
+.B k7ctl
+.RI [ command ]
+.RI [ arguments ]
+.SH DESCRIPTION
+.B k7ctl
+shows what a FiiO K7 DAC/headphone amplifier is receiving (sample rate, bit depth, PCM or DSD)
+and sets up PipeWire so it gets the music unchanged: at its own sample rate, without software
+volume, and without being suspended when idle. It can also put a headphone EQ (AutoEQ
+profiles) in front of the K7, and has a system tray icon and output for status bars.
+.PP
+The K7 has no volume, gain or input controls over USB: the knob and switches are physical only,
+so no software can change them. Sound itself needs no driver; the K7 is a standard USB audio
+device.
+.PP
+Without a command,
+.B k7ctl
+runs
+.BR status .
+.SH COMMANDS
+.SS Status
+.TP
+.BR status " [" \-\-format " text|json|waybar|short] [" \-\-json "] [" \-w | \-\-watch "] [" \-\-interval " \fIseconds\fR]"
+What the K7 is playing, each application playing to it and whether it is being resampled,
+firmware, PipeWire volume, allowed sample rates, latency, keep\-awake and EQ. Explains why a
+stream is resampled (usually another application that started first at a different rate).
+.B waybar
+prints Waybar JSON,
+.B short
+a few characters for other status bars; with
+.B \-\-watch
+a new line is printed whenever something changes. Exits 1 if no K7 is connected.
+.TP
+.B firmware
+The installed firmware version and how to update it. k7ctl does not flash firmware.
+.SS Bit\-perfect playback
+.TP
+.BR rates " [enable|disable|status]"
+Let PipeWire switch the K7 to the sample rate of what is playing (44.1 to 384 kHz) instead of
+resampling everything to 48 kHz. Applied immediately and saved in
+.IR ~/.config/pipewire/pipewire.conf.d/50\-k7ctl\-samplerates.conf .
+.TP
+.B volume\-max
+Set PipeWire's volume for the K7 to 100% and unmute it. Lower software volume reduces
+resolution; use the K7's knob instead. Turn the knob down first.
+.TP
+.BR setup " [" \-y | \-\-yes ]
+.BR "rates enable" ,
+make the K7 the default output, and
+.B volume\-max
+(asks first unless
+.BR \-\-yes ).
+.SS Reliability
+.TP
+.BR keepawake " [on|off|status] [" \-\-no\-restart ]
+Stop WirePlumber suspending the K7 after a few idle seconds, which can cut off the start of
+sounds. Saved in
+.IR ~/.config/wireplumber/wireplumber.conf.d/50\-k7ctl\-keepawake.conf ;
+WirePlumber is restarted to apply it (about a second of silence) unless
+.BR \-\-no\-restart .
+.TP
+.BR latency " [default|stable|low\-latency]"
+PipeWire buffer size presets.
+.B stable
+uses bigger buffers, which fixes crackles at high sample rates;
+.B low\-latency
+smaller ones for games and calls. Without a preset, shows the current one. Applied immediately
+and saved in
+.IR ~/.config/pipewire/pipewire.conf.d/51\-k7ctl\-latency.conf .
+.SS Headphone EQ
+With EQ on, playback is processed and no longer bit\-perfect.
+.TP
+.BI "eq search " headphone
+Search the AutoEQ database of headphone profiles.
+.TP
+.BI "eq get " headphone \fR\ [\fB\-\-source \fIsource\fR] [\fB\-\-name \fIname\fR] [\fB\-\-on\fR]
+Download a profile; with several measurements of the same model, pick one with
+.BR \-\-source .
+.TP
+.BI "eq import " file \fR\ [\fB\-\-name \fIname\fR]
+Import a parametric EQ in the Equalizer APO format (AutoEQ's ParametricEQ.txt).
+.TP
+.BR "eq on" " [\fIprofile\fR]"
+Turn EQ on: starts the
+.B k7ctl\-eq
+systemd user service, which adds a "FiiO K7 + EQ" output in front of the K7 and makes it the
+default.
+.TP
+.B eq off
+Stop the EQ and make the K7 the default output again.
+.TP
+.BR "eq list" ", " "eq status" ", " "eq remove \fIprofile\fR"
+Saved profiles, whether EQ is on, delete a profile.
+.SS Desktop
+.TP
+.B tray
+A system tray icon with the status and all of the above settings.
+.SH FILES
+.TP
+.I ~/.local/share/k7ctl/eq/
+Saved EQ profiles.
+.TP
+.I ~/.config/k7ctl/eq.json
+The selected EQ profile.
+.TP
+.I ~/.config/systemd/user/k7ctl\-eq.service
+The EQ service, while EQ is on.
+.TP
+.I ~/.config/autostart/k7ctl\-tray.desktop
+Starts the tray icon at login (the tray's "Start at login").
+.SH EXIT STATUS
+0 on success, 1 on errors or when no K7 is connected.
+.SH EXAMPLES
+.nf
+k7ctl setup
+k7ctl status \-\-watch
+k7ctl eq get "Sennheiser HD 600" \-\-source oratory1990 \-\-on
+k7ctl latency stable
+.fi
+.SH SEE ALSO
+.BR pipewire (1),
+.BR wpctl (1),
+.BR pw\-metadata (1)
+.PP
+https://github.com/doodersrage/fiio-k7-linux

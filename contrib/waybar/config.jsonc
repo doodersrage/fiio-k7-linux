@@ -1,0 +1,10 @@
+// Add "custom/k7ctl" to one of your modules-left/center/right lists, then:
+"custom/k7ctl": {
+    // --watch keeps one process running and prints a line whenever something changes
+    "exec": "k7ctl status --format waybar --watch",
+    "return-type": "json",
+    "restart-interval": 5,        // restart it if it exits (e.g. PipeWire restarted)
+    "format": "🎧 {}",
+    "tooltip": true,
+    "on-click": "k7ctl tray"
+}

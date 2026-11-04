@@ -1,0 +1,20 @@
+Source: k7ctl
+Section: sound
+Priority: optional
+Maintainer: Robert McDowell <doodersrage@gmail.com>
+Build-Depends: debhelper-compat (= 13), dh-python, python3, python3-pytest <!nocheck>
+Standards-Version: 4.6.2
+Homepage: https://github.com/doodersrage/fiio-k7-linux
+Rules-Requires-Root: no
+
+Package: k7ctl
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, pipewire-bin, wireplumber
+Recommends: python3-pyqt6
+Description: FiiO K7 DAC/amp status and bit-perfect setup for PipeWire
+ Shows what the FiiO K7 USB DAC/headphone amp is playing (sample rate, bit
+ depth, PCM or DSD) and its firmware version, lets PipeWire switch the K7 to
+ the native sample rate of the music instead of resampling everything to
+ 48 kHz, and checks that PipeWire's volume isn't throwing away resolution.
+ Includes a command line tool with JSON output and a system tray icon (needs
+ PyQt6 or PySide6).

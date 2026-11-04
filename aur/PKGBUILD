@@ -1,0 +1,37 @@
+# Maintainer: Robert McDowell <doodersrage@gmail.com>
+#
+# Release PKGBUILD for the AUR. To publish a new version:
+#   1. bump k7ctl/__init__.py, tag vX.Y.Z and push the tag
+#   2. set pkgver below, run `updpkgsums` and `makepkg --printsrcinfo > .SRCINFO`
+#   3. copy PKGBUILD and .SRCINFO into the AUR git repo and push
+pkgname=k7ctl
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="FiiO K7 DAC/amp status and bit-perfect setup for Linux (PipeWire)"
+arch=('any')
+url="https://github.com/doodersrage/fiio-k7-linux"
+license=('MIT')
+depends=('python' 'pipewire' 'wireplumber')
+makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel')
+checkdepends=('python-pytest')
+optdepends=('python-pyqt6: system tray icon'
+            'pyside6: system tray icon, alternative to PyQt6')
+_srcname=fiio-k7-linux
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # replace with `updpkgsums` once the tag exists
+
+build() {
+  cd "$_srcname-$pkgver"
+  /usr/bin/python -m build --wheel --no-isolation
+}
+
+check() {
+  cd "$_srcname-$pkgver"
+  QT_QPA_PLATFORM=offscreen /usr/bin/python -m pytest -q -p no:cacheprovider
+}
+
+package() {
+  cd "$_srcname-$pkgver"
+  /usr/bin/python -m installer --destdir="$pkgdir" dist/*.whl
+  ./install-files.sh "$pkgdir"
+}

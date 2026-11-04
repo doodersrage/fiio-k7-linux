@@ -1,6 +1,7 @@
 # Builds the package from this source checkout:  makepkg -si
+# (aur/PKGBUILD is the release version that downloads a tagged tarball.)
 pkgname=k7ctl
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="FiiO K7 DAC/amp status and bit-perfect setup for Linux (PipeWire)"
 arch=('any')
@@ -14,7 +15,7 @@ optdepends=('python-pyqt6: system tray icon'
 
 build() {
   cd "$startdir"
-  rm -rf "$srcdir/dist"
+  rm -rf "$srcdir/dist"   # no stale wheels from earlier versions
   /usr/bin/python -m build --wheel --no-isolation --outdir "$srcdir/dist"
 }
 
@@ -25,6 +26,5 @@ check() {
 
 package() {
   /usr/bin/python -m installer --destdir="$pkgdir" "$srcdir"/dist/*.whl
-  install -Dm644 "$startdir/data/k7ctl-tray.desktop" "$pkgdir/usr/share/applications/k7ctl-tray.desktop"
-  install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  "$startdir/install-files.sh" "$pkgdir"
 }

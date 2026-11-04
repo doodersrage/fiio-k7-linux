@@ -1,0 +1,118 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.11", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+      - name: Qt runtime libraries (tray tests run offscreen)
+        run: sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+      - run: pip install pytest PyQt6 .
+      - run: python -m pytest -q
+        env:
+          QT_QPA_PLATFORM: offscreen
+      - name: CLI smoke test
+        run: |
+          k7ctl --version
+          k7ctl --help >/dev/null
+          python -m k7ctl --help >/dev/null
+
+  shell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh fish appstream desktop-file-utils groff-base
+      - run: |
+          bash -n completions/k7ctl.bash
+          zsh -n completions/_k7ctl
+          fish --no-execute completions/k7ctl.fish
+          sh -n install-files.sh
+          sh -n ci-install-check.sh
+          for f in packaging/*.sh; do sh -n "$f"; done
+          appstreamcli validate --no-net data/io.github.doodersrage.k7ctl.metainfo.xml
+          desktop-file-validate data/*.desktop
+          man --warnings -l docs/k7ctl.1 2>&1 >/dev/null | (! grep .)
+
+  # Build the packages, install them like a user would, check, remove.
+  package-deb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential debhelper dh-python python3-pytest
+      - run: packaging/build-deb.sh dist
+      - name: Source package builds too (what a Launchpad PPA builds from)
+        run: |
+          cp -r . /tmp/srcpkg && cd /tmp/srcpkg && rm -rf .git dist
+          dpkg-buildpackage -S -us -uc -d
+          ls ../k7ctl_*.dsc
+      - run: sudo apt-get install -y ./dist/k7ctl_*_all.deb
+      - run: sudo apt-get install -y --no-install-recommends python3-pyqt6 libegl1 libgl1 libxkbcommon0 libfontconfig1 desktop-file-utils
+      - run: ./ci-install-check.sh
+      - run: |
+          sudo apt-get remove -y k7ctl
+          ! command -v k7ctl
+          test ! -e /usr/share/applications/k7ctl-tray.desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: dist/*.deb
+
+  package-rpm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: fedora:latest
+    steps:
+      - run: dnf install -y git rpm-build python3-devel python3-pytest
+      - uses: actions/checkout@v5
+      - run: packaging/build-rpm.sh dist
+      - name: COPR path builds too (source RPM via .copr/Makefile, then rebuild)
+        run: |
+          dnf install -y make
+          make -f .copr/Makefile srpm outdir=/tmp/srpm
+          rpmbuild --rebuild /tmp/srpm/k7ctl-*.src.rpm
+      - run: dnf install -y ./dist/k7ctl-*.noarch.rpm
+      - run: dnf install -y python3-pyqt6 mesa-libEGL mesa-libGL libxkbcommon fontconfig desktop-file-utils
+      - run: ./ci-install-check.sh
+      - run: |
+          dnf remove -y k7ctl
+          ! command -v k7ctl
+          test ! -e /usr/share/applications/k7ctl-tray.desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm
+          path: dist/*.rpm
+
+  package-arch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm git
+      - uses: actions/checkout@v5
+      - run: packaging/build-arch.sh dist
+      - run: pacman -U --noconfirm dist/k7ctl-*-any.pkg.tar.zst
+      - run: pacman -S --noconfirm --needed python-pyqt6 desktop-file-utils mesa libxkbcommon fontconfig
+      - run: PYTHON=/usr/bin/python ./ci-install-check.sh
+      - run: |
+          pacman -R --noconfirm k7ctl
+          ! command -v k7ctl
+          test ! -e /usr/share/applications/k7ctl-tray.desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch
+          path: dist/*.pkg.tar.zst

@@ -1,0 +1,65 @@
+#compdef k7ctl
+# zsh completion for k7ctl
+
+_k7ctl_profiles() {
+    local dir="${XDG_DATA_HOME:-$HOME/.local/share}/k7ctl/eq"
+    local -a profiles
+    profiles=(${dir}/*.txt(N:t:r))
+    _describe 'EQ profile' profiles
+}
+
+_k7ctl() {
+    local -a cmds
+    cmds=(
+        'status:show what the K7 is playing'
+        'rates:let PipeWire use the music'"'"'s own sample rate'
+        'latency:buffer size presets'
+        'keepawake:stop the K7 suspending when idle'
+        'eq:headphone EQ (AutoEQ profiles)'
+        'volume-max:set PipeWire'"'"'s K7 volume to 100%'
+        'setup:rates enable + default output + volume-max'
+        'firmware:show the firmware version and how to update it'
+        'tray:system tray icon'
+    )
+    if (( CURRENT == 2 )); then
+        _describe 'command' cmds
+        _arguments '--help[show help]' '--version[show version]'
+        return
+    fi
+    case $words[2] in
+        status)
+            _arguments \
+                '--format[output format]:format:(text json waybar short)' \
+                '--json[same as --format json]' \
+                '(-w --watch)'{-w,--watch}'[keep running, print changes]' \
+                '--interval[seconds between checks]:seconds:' ;;
+        rates)     (( CURRENT == 3 )) && compadd enable disable status ;;
+        latency)   (( CURRENT == 3 )) && compadd default stable low-latency ;;
+        keepawake) _arguments '1:action:(on off status)' '--no-restart[don'"'"'t restart WirePlumber now]' ;;
+        setup)     _arguments '(-y --yes)'{-y,--yes}'[don'"'"'t ask before setting volume to 100%]' ;;
+        eq)
+            if (( CURRENT == 3 )); then
+                local -a acts
+                acts=(
+                    'status:is EQ on, which profile'
+                    'list:saved profiles'
+                    'search:search AutoEQ'"'"'s headphone profiles'
+                    'get:download an AutoEQ profile'
+                    'import:import an Equalizer APO file'
+                    'remove:delete a saved profile'
+                    'on:turn EQ on'
+                    'off:turn EQ off'
+                )
+                _describe 'eq action' acts
+                return
+            fi
+            case $words[3] in
+                on|remove) _k7ctl_profiles ;;
+                import)    _arguments '--name[save under this name]:name:' '*:file:_files' ;;
+                get)       _arguments '--source[measurement source]:source:' '--name[save under this name]:name:' '--on[turn EQ on with it]' '*:headphone:' ;;
+                search)    _arguments '--limit[max results]:n:' '--refresh[re-download the index]' '*:headphone:' ;;
+            esac ;;
+    esac
+}
+
+_k7ctl "$@"

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.doodersrage.k7ctl</id>
+  <name>k7ctl</name>
+  <summary>FiiO K7 DAC status, native sample rates and headphone EQ for Linux/PipeWire</summary>
+  <developer id="io.github.doodersrage">
+    <name>Robert McDowell</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <launchable type="desktop-id">k7ctl-tray.desktop</launchable>
+  <description>
+    <p>
+      FiiO only makes software for the K7 DAC and headphone amplifier for Windows.
+      k7ctl gives Linux the parts that matter.
+    </p>
+    <ul>
+      <li>See what the K7 is receiving right now: sample rate, bit depth, PCM or DSD</li>
+      <li>Let PipeWire play music at its own sample rate instead of resampling everything to 48 kHz</li>
+      <li>Check that PipeWire's volume isn't throwing away resolution</li>
+      <li>See which application is keeping the K7 at another sample rate, and which streams are resampled</li>
+      <li>Headphone EQ with profiles for thousands of headphones from AutoEQ</li>
+      <li>Keep the K7 awake so the start of sounds isn't cut off, and buffer presets against crackles</li>
+      <li>Show the installed firmware version and how to update it</li>
+    </ul>
+    <p>
+      It comes with a system tray icon and a command line tool (k7ctl) with JSON output for scripts and status bars.
+      No root access is needed.
+    </p>
+  </description>
+  <url type="homepage">https://github.com/doodersrage/fiio-k7-linux</url>
+  <url type="bugtracker">https://github.com/doodersrage/fiio-k7-linux/issues</url>
+  <url type="vcs-browser">https://github.com/doodersrage/fiio-k7-linux</url>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+  </categories>
+  <keywords>
+    <keyword>fiio</keyword>
+    <keyword>k7</keyword>
+    <keyword>dac</keyword>
+    <keyword>sample rate</keyword>
+    <keyword>bit-perfect</keyword>
+    <keyword>pipewire</keyword>
+  </keywords>
+  <provides>
+    <binary>k7ctl</binary>
+    <modalias>usb:v2972p0047*</modalias>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.2.0" date="2026-11-04">
+      <description>
+        <p>Resampling diagnosis, headphone EQ, keep-awake, latency presets, status bar output, shell completions and a man page.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-11-04">
+      <description>
+        <p>First release: status, bit-perfect PipeWire setup and a tray icon.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,6 @@
+/* Optional styling for the FiiO K7 module.
+   Classes: playing, idle, resampled, eq, disconnected */
+#custom-k7ctl.idle { opacity: 0.6; }
+#custom-k7ctl.resampled { color: #e5c890; }   /* something is being resampled */
+#custom-k7ctl.eq { color: #8caaee; }          /* headphone EQ is on */
+#custom-k7ctl.disconnected { padding: 0; margin: 0; }
