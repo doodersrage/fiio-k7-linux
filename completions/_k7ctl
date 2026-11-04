@@ -15,6 +15,7 @@ _k7ctl() {
         'rates:let PipeWire use the music'"'"'s own sample rate'
         'latency:buffer size presets'
         'keepawake:stop the K7 suspending when idle'
+        'exclusive:release the DAC from PipeWire for direct players'
         'eq:headphone EQ (AutoEQ profiles)'
         'volume-max:set PipeWire'"'"'s K7 volume to 100%'
         'setup:rates enable + default output + volume-max'
@@ -44,6 +45,7 @@ _k7ctl() {
                 '--interval[seconds between checks]:seconds:' ;;
         rates)     (( CURRENT == 3 )) && compadd enable disable status ;;
         latency)   (( CURRENT == 3 )) && compadd default stable low-latency ;;
+        exclusive) (( CURRENT == 3 )) && compadd on off status ;;
         keepawake) _arguments '1:action:(on off status)' '--no-restart[don'"'"'t restart WirePlumber now]' ;;
         setup)     _arguments '(-y --yes)'{-y,--yes}'[don'"'"'t ask before setting volume to 100%]' ;;
         firmware)  _arguments '--open[open FiiO'"'"'s firmware download page]' ;;

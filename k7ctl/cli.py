@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 
-from . import (__version__, device, eq, firmware, keepawake, latency, pipewire,
+from . import (__version__, device, eq, exclusive, firmware, keepawake, latency, pipewire,
                rates, snapshot)
 from .device import format_rate
 
@@ -68,6 +68,11 @@ def status_lines(s: snapshot.Snapshot) -> list[str]:
         lines.append(f"  Latency:      {s.latency}{q}")
     lines.append(f"  Keep awake:   {'on' if s.keepawake else 'off'}"
                  + (" (restart WirePlumber to apply)" if s.keepawake_config and not s.keepawake else ""))
+    if s.exclusive:
+        lines.append("  Exclusive:    on: PipeWire released it for direct players "
+                     "(k7ctl exclusive off to undo)")
+    if s.direct:
+        lines.append(f"  Used by:      {s.direct}, directly (not through PipeWire)")
     if s.eq_on:
         lines.append(f"  EQ:           on ({s.eq_profile}), not bit-perfect")
     else:
@@ -376,6 +381,26 @@ def cmd_firmware(args) -> int:
     return 0
 
 
+def cmd_exclusive(args) -> int:
+    a = args.action
+    try:
+        if a == "on":
+            if not device.find():
+                return _no_k7()
+            print(exclusive.enable())
+            return 0
+        if a == "off":
+            print(exclusive.disable())
+            return 0
+    except RuntimeError as e:
+        return _err(str(e))
+    s = snapshot.take(with_volume=False)
+    print(f"Exclusive: {'on (PipeWire released it)' if s.exclusive else 'off (PipeWire uses it)'}")
+    if s.direct:
+        print(f"Used directly by: {s.direct}")
+    return 0
+
+
 def cmd_devices(args) -> int:
     cards = device.list_usb_cards()
     want = device.target_id()
@@ -487,6 +512,10 @@ def build_parser() -> argparse.ArgumentParser:
     f = sub.add_parser("firmware", help="show the firmware version and how to update it")
     f.add_argument("--open", action="store_true", help="open FiiO's firmware download page")
     f.set_defaults(func=cmd_firmware)
+
+    ex = sub.add_parser("exclusive", help="release the DAC from PipeWire for direct players (native DSD)")
+    ex.add_argument("action", nargs="?", choices=["on", "off", "status"], default="status")
+    ex.set_defaults(func=cmd_exclusive)
 
     dv = sub.add_parser("devices", help="list USB sound cards (to use another DAC)")
     dv.set_defaults(func=cmd_devices)

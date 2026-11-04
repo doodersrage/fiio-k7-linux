@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from . import device, eq, keepawake, latency, pipewire, pwconf
+from . import device, eq, exclusive, keepawake, latency, pipewire, pwconf
 from .device import format_rate
 
 
@@ -23,6 +23,8 @@ class Snapshot:
     keepawake_config: bool
     eq_profile: str | None
     eq_on: bool
+    exclusive: bool = False       # PipeWire released the DAC (profile "off")
+    direct: str | None = None     # a non-PipeWire program using the DAC directly
 
     # -------------------------------------------------------------- verdicts
     @property
@@ -44,6 +46,8 @@ class Snapshot:
     @property
     def bit_perfect(self) -> bool | None:
         """True/False while playing; None when idle or unknown."""
+        if self.playing and self.direct:
+            return True               # a player has the DAC to itself: nothing in between
         if not self.playing or not self.sink:
             return None
         if self.eq_on or self.resampled:
@@ -52,19 +56,24 @@ class Snapshot:
             return False
         return True
 
-    def why_resampled(self) -> list[str]:
+    def why_resampled(self, tr=lambda text: text) -> list[str]:
+        """Why streams are resampled. The window and tray pass their translator;
+        the command line stays English."""
         out = []
         if not self.sink or not self.sink.rate:
             return out
         holders = [s.app for s in self.sink.holders() if not s.is_eq]
         for s in self.resampled:
-            line = (f"{s.app} is {format_rate(s.rate)} but the K7 is running at "
-                    f"{format_rate(self.sink.rate)}")
+            args = dict(app=s.app, rate=format_rate(s.rate), dac_rate=format_rate(self.sink.rate),
+                        others=", ".join(sorted(set(holders))))
             if self.single_rate:
-                line += " (PipeWire only allows one rate: k7ctl rates enable)"
+                line = tr("{app} is {rate} but the K7 is running at {dac_rate} "
+                          "(PipeWire only allows one rate: k7ctl rates enable)")
             elif holders:
-                line += f" because {', '.join(sorted(set(holders)))} started first"
-            out.append(line)
+                line = tr("{app} is {rate} but the K7 is running at {dac_rate} because {others} started first")
+            else:
+                line = tr("{app} is {rate} but the K7 is running at {dac_rate}")
+            out.append(line.format(**args))
         return out
 
     # --------------------------------------------------------------- display
@@ -83,11 +92,15 @@ class Snapshot:
             text += "*"
         if self.eq_on:
             text += " EQ"
+        if self.exclusive and not self.playing:
+            text += " (released)"
         return text
 
     def css_class(self) -> str:
         if not self.k7:
             return "disconnected"
+        if self.exclusive or self.direct:
+            return "playing" if self.playing else "idle"
         if self.eq_on:
             return "eq"
         if self.resampled:
@@ -120,4 +133,6 @@ def take(with_volume: bool = True) -> Snapshot:
         keepawake_config=keepawake.is_enabled(),
         eq_profile=state.get("profile"),
         eq_on=bool(sink and sink.eq_active),
+        exclusive=exclusive.is_on(d) if d else False,
+        direct=exclusive.direct_user(k7.card_index) if k7 else None,
     )

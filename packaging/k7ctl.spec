@@ -3,7 +3,7 @@
 %global srcname fiio-k7-linux
 
 Name:           k7ctl
-Version:        0.2.0
+Version:        0.3.0
 Release:        1%{?dist}
 Summary:        FiiO K7 DAC/amp status and bit-perfect setup for PipeWire
 License:        MIT
@@ -62,6 +62,10 @@ QT_QPA_PLATFORM=offscreen %{python3} -m pytest -q -p no:cacheprovider tests
 %{_datadir}/fish/vendor_completions.d/k7ctl.fish
 
 %changelog
+* Wed Nov 04 2026 Robert McDowell <doodersrage@gmail.com> - 0.3.0-1
+- Exclusive mode: release the DAC from PipeWire for direct players (native DSD)
+- German, Spanish and French translations of the window and tray
+
 * Wed Nov 04 2026 Robert McDowell <doodersrage@gmail.com> - 0.2.0-1
 - Show which app keeps the K7 at another rate and which streams are resampled
 - keepawake, latency presets, headphone EQ (AutoEQ), status bar output

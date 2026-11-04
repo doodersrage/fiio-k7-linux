@@ -56,6 +56,14 @@ automatically).
 A diagnostics report for bug reports: versions, the device's kernel status, PipeWire
 settings, k7ctl's files and the EQ service log. The window's "Copy diagnostics" button copies
 the same report.
+.TP
+.BR exclusive " [on|off|status]"
+Release the DAC from PipeWire (its profile is set to "off") so a player can open its ALSA device
+directly, e.g. MPD for native DSD; other apps play through another output meanwhile.
+.B off
+restores the previous profile and default output. WirePlumber remembers it, so the DAC stays
+released (also after a reboot) until
+.BR "exclusive off" .
 .SS Device
 .TP
 .B devices

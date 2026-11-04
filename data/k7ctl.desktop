@@ -3,6 +3,12 @@ Type=Application
 Name=FiiO K7
 GenericName=DAC settings
 Comment=FiiO K7 status, bit-perfect playback settings and headphone EQ
+Comment[de]=FiiO-K7-Status, Einstellungen für bit-perfekte Wiedergabe und Kopfhörer-EQ
+Comment[es]=Estado del FiiO K7, ajustes de reproducción bit-perfect y ecualizador de auriculares
+Comment[fr]=État du FiiO K7, réglages de lecture bit-perfect et égaliseur de casque
+GenericName[de]=DAC-Einstellungen
+GenericName[es]=Ajustes del DAC
+GenericName[fr]=Réglages du DAC
 Exec=k7ctl gui
 Icon=audio-card
 Terminal=false
@@ -13,16 +19,28 @@ Actions=status;eq-toggle;setup;tray;
 
 [Desktop Action status]
 Name=What's playing?
+Name[fr]=Qu’est-ce qui joue ?
+Name[es]=¿Qué se reproduce?
+Name[de]=Was spielt gerade?
 Exec=k7ctl --notify status
 
 [Desktop Action eq-toggle]
 Name=Headphone EQ on/off
+Name[fr]=Égaliseur de casque on/off
+Name[es]=Ecualizador de auriculares sí/no
+Name[de]=Kopfhörer-EQ an/aus
 Exec=k7ctl --notify eq toggle
 
 [Desktop Action setup]
 Name=Bit-perfect setup
+Name[fr]=Configuration bit-perfect
+Name[es]=Configuración bit-perfect
+Name[de]=Bit-perfekte Einrichtung
 Exec=k7ctl --notify setup
 
 [Desktop Action tray]
 Name=Show tray icon
+Name[fr]=Afficher l’icône de notification
+Name[es]=Mostrar el icono de la bandeja
+Name[de]=Symbol im Systembereich zeigen
 Exec=k7ctl tray

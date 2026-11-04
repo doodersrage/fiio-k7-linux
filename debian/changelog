@@ -1,3 +1,10 @@
+k7ctl (0.3.0) unstable; urgency=medium
+
+  * Exclusive mode: release the DAC from PipeWire for direct players (native DSD).
+  * German, Spanish and French translations of the window and tray.
+
+ -- Robert McDowell <doodersrage@gmail.com>  Wed, 04 Nov 2026 17:00:00 -0500
+
 k7ctl (0.2.0) unstable; urgency=medium
 
   * Show which app keeps the K7 at another rate and which streams are resampled.

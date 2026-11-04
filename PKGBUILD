@@ -1,7 +1,7 @@
 # Builds the package from this source checkout:  makepkg -si
 # (aur/PKGBUILD is the release version that downloads a tagged tarball.)
 pkgname=k7ctl
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc="FiiO K7 DAC/amp status and bit-perfect setup for Linux (PipeWire)"
 arch=('any')

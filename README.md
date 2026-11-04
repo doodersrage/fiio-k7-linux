@@ -11,9 +11,11 @@ FiiO's software for the K7 DAC/headphone amp is Windows-only. This project gives
   that's holding the K7 at the other rate.
 - **Headphone EQ** with profiles for thousands of headphones from [AutoEQ](https://github.com/jaakkopasanen/AutoEq).
 - **Keep awake**: stops the start of sounds being cut off after the K7 has been idle.
+- **Exclusive mode** for players that need the K7 to themselves (native DSD).
 - **Latency presets** against crackles at high sample rates (or for low-latency gaming).
 - **A settings window** (`k7ctl gui`, or "FiiO K7" in your app launcher) and a **system tray icon** with all of the above.
 - **Other USB DACs** work too (`k7ctl use <usb-id>`), though only the K7 is tested.
+- Window and tray in **English, German, Spanish and French** ([help translate](CONTRIBUTING-translations.md)).
 - Output for **Waybar, Polybar** and scripts (JSON); bash, zsh and fish completions; a man page.
 
 ![The FiiO K7 window](docs/window.png)
@@ -98,6 +100,7 @@ k7ctl tray       # tray icon: click it to open the window; "Start at login" is i
 | `k7ctl eq import <file>` | Import an Equalizer APO / `ParametricEQ.txt` file. |
 | `k7ctl eq on [profile]` / `off` / `toggle` | Turn the EQ on or off. `eq list`, `eq status`, `eq remove` manage profiles. |
 | `k7ctl firmware [--open]` | Installed firmware version and how to update it; `--open` opens FiiO's download page. |
+| `k7ctl exclusive on` / `off` | Release the K7 from PipeWire for a player that uses it directly (native DSD). |
 | `k7ctl devices` / `k7ctl use <id\|auto>` | List USB sound cards / use another DAC (see below). |
 | `k7ctl diag` | A diagnostics report to paste into bug reports. |
 | `k7ctl --notify <command>` | Show the result as a desktop notification (for shortcuts). |
@@ -213,14 +216,24 @@ Applied immediately; saved in `~/.config/pipewire/pipewire.conf.d/51-k7ctl-laten
 ## DSD
 
 The K7 plays DSD natively (DSD64 to DSD256): the DSD bits go to the DAC unchanged, not converted to PCM.
-**PipeWire can't send DSD to it**, so a player has to use the K7's ALSA device directly:
+There are two ways to get DSD to it:
 
-| Route | Native DSD on the K7 |
-|---|---|
-| Player with direct ALSA output (`hw:CARD=K7,DEV=0`): MPD, Strawberry, DeaDBeeF, Audacious… | **Works** (tested) |
-| `pw-dsdplay` / PipeWire | Doesn't work: "no target node available", also with the K7 in the Pro Audio profile (tested with PipeWire 1.6, WirePlumber 0.5) |
+**1. A player with direct ALSA output** (MPD, Strawberry, DeaDBeeF, Audacious…), device `hw:CARD=K7,DEV=0`,
+native DSD (not DoP, not "convert to PCM"). Tested and working. The player needs the K7 to itself, so
+**turn on exclusive mode first**:
 
-**MPD** example:
+```sh
+k7ctl exclusive on      # PipeWire releases the K7; other apps play through another output
+# ... play DSD in your player ...
+k7ctl exclusive off     # PipeWire takes the K7 back (and makes it the default output again)
+```
+
+Also in the tray menu (*Release for direct players*) and the window. Without it the player fails with
+"Device or resource busy" whenever PipeWire is using the K7 (always, with keep-awake on). While released,
+`k7ctl status` shows which program is using the K7, e.g. `Used by: mpd (pid 1234)`. WirePlumber remembers the
+setting, so the K7 stays released after a reboot until you turn exclusive off.
+
+MPD example:
 
 ```
 audio_output {
@@ -235,14 +248,13 @@ audio_output {
 }
 ```
 
-In other players, choose the ALSA output with device `hw:CARD=K7,DEV=0` and native DSD (not DoP, not "convert to PCM").
+**2. Through PipeWire** (`pw-dsdplay file.dsf`). PipeWire sends DSD only to an output nothing else is connected to.
+**Any other stream connected to the K7 blocks it, even a paused browser tab**, and the error,
+"no target node available", doesn't say so. WirePlumber's log has the real reason: `target is already linked,
+cannot link exclusively`. Close or move the other streams first (`k7ctl status` lists the ones playing; a
+paused tab doesn't show there but still counts).
 
-- `hw:` access is exclusive: while a player has it, other apps can't play through the K7, and if PipeWire is using the K7
-  at that moment the player reports "Device or resource busy". PipeWire releases an idle K7 after a few seconds, unless
-  keep-awake is on: turn it off if you use direct output a lot.
-- `k7ctl status` and the window show e.g. `DSD64 (2.822 MHz, native)` while DSD is playing.
-- Quick check without a player: `aplay -D hw:CARD=K7,DEV=0 -t raw -f DSD_U32_BE -c 2 -r 88200 < file.raw` plays raw
-  DSD64 (88200 frames/s × 32 bits = 2.8224 MHz).
+`k7ctl status` and the window show e.g. `DSD64 (2.822 MHz, native)` while DSD is playing.
 
 ## Firmware updates
 

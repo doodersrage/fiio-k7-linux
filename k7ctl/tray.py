@@ -11,8 +11,9 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import device, eq, keepawake, latency, rates, settings, snapshot
+from . import device, eq, exclusive, keepawake, latency, rates, settings, snapshot
 from .device import format_rate
+from .i18n import tr
 from .qt import QtCore, QtGui, QtWidgets, Worker, make_app, run_app, state_icon
 
 W = QtWidgets
@@ -47,48 +48,51 @@ class Tray:
         self.tray = W.QSystemTrayIcon(state_icon("disconnected"))
         self.menu = W.QMenu()
 
-        a_open = QtGui.QAction("Open k7ctl…", self.menu)
+        a_open = QtGui.QAction(tr("Open k7ctl…"), self.menu)
         a_open.triggered.connect(self.open_window)
         f = a_open.font()
         f.setBold(True)
         a_open.setFont(f)
         self.menu.addAction(a_open)
         self.menu.addSeparator()
-        self.a_status = self._info(f"No {device.display_name()} connected")
+        self.a_status = self._info(tr("No {device} connected").format(device=device.display_name()))
         self.a_detail = self._info("")
         self.a_warn = self._info("")
         self.menu.addSeparator()
 
-        self.a_rates = self._check("Use the music's sample rate", self.toggle_rates)
-        self.a_awake = self._check("Keep the K7 awake (no cut-off sounds)", self.toggle_keepawake)
+        self.a_rates = self._check(tr("Use the music's sample rate"), self.toggle_rates)
+        self.a_awake = self._check(tr("Keep the K7 awake (no cut-off sounds)"), self.toggle_keepawake)
+        self.a_excl = self._check(tr("Release for direct players (native DSD)"), self.toggle_exclusive)
 
-        self.m_eq = self.menu.addMenu("Headphone EQ")
+        self.m_eq = self.menu.addMenu(tr("Headphone EQ"))
         self.m_eq.aboutToShow.connect(self.build_eq_menu)
 
-        self.m_lat = self.menu.addMenu("Latency")
+        self.m_lat = self.menu.addMenu(tr("Latency"))
         self.g_lat = QtGui.QActionGroup(self.m_lat)
         self.lat_actions = {}
         for name, (v, desc) in latency.PRESETS.items():
-            a = QtGui.QAction(f"{name} ({v[0]} samples)", self.m_lat)
-            a.setToolTip(desc)
+            from .window import LATENCY_DESC, LATENCY_NAMES
+            a = QtGui.QAction(tr("{preset} ({samples} samples)").format(
+                preset=LATENCY_NAMES.get(name, name), samples=v[0]), self.m_lat)
+            a.setToolTip(LATENCY_DESC.get(name, desc))
             a.setCheckable(True)
             a.triggered.connect(lambda _=False, n=name: self.run(lambda: latency.apply(n)))
             self.g_lat.addAction(a)
             self.m_lat.addAction(a)
             self.lat_actions[name] = a
 
-        self.m_notify = self.menu.addMenu("Notifications")
-        self.a_n_rate = QtGui.QAction("When the sample rate changes", self.m_notify)
-        self.a_n_res = QtGui.QAction("When something starts being resampled", self.m_notify)
+        self.m_notify = self.menu.addMenu(tr("Notifications"))
+        self.a_n_rate = QtGui.QAction(tr("When the sample rate changes"), self.m_notify)
+        self.a_n_res = QtGui.QAction(tr("When something starts being resampled"), self.m_notify)
         for a, key in ((self.a_n_rate, "notify_rate"), (self.a_n_res, "notify_resample")):
             a.setCheckable(True)
             a.toggled.connect(lambda on, k=key: settings.set(**{k: on}))
             self.m_notify.addAction(a)
 
         self.menu.addSeparator()
-        self.a_auto = self._check("Start at login", self.toggle_autostart)
+        self.a_auto = self._check(tr("Start at login"), self.toggle_autostart)
         self.a_auto.setChecked(autostart_path().is_file())
-        a_quit = QtGui.QAction("Quit", self.menu)
+        a_quit = QtGui.QAction(tr("Quit"), self.menu)
         a_quit.triggered.connect(app.quit)
         self.menu.addAction(a_quit)
 
@@ -154,15 +158,17 @@ class Tray:
         """Rate-change and resampling notifications (off by default)."""
         rate = s.k7.stream.describe() if s.playing else None
         if prefs["notify_rate"] and rate and self.last_rate and rate != self.last_rate:
-            self.tray.showMessage(self.title(), f"Now playing {rate}", state_icon(s.css_class()), 3000)
+            self.tray.showMessage(self.title(), tr("Now playing {what}").format(what=rate),
+                                  state_icon(s.css_class()), 3000)
         if rate:
             self.last_rate = rate
         resampled = {x.app for x in s.resampled}
         new = resampled - self.last_resampled
         if prefs["notify_resample"] and new and s.sink and s.sink.rate:
-            why = s.why_resampled()
+            why = s.why_resampled(tr)
             self.tray.showMessage(self.title(), why[0] if why else
-                                  f"{', '.join(sorted(new))} resampled to {format_rate(s.sink.rate)}",
+                                  tr("{apps} resampled to {rate}").format(
+                                      apps=", ".join(sorted(new)), rate=format_rate(s.sink.rate)),
                                   state_icon("resampled"), 6000)
         self.last_resampled = resampled
 
@@ -170,7 +176,7 @@ class Tray:
         self.snap = s
         connected = s.connected
         if self.was_connected is not None and connected != self.was_connected:
-            self.tray.showMessage(self.title(), "Connected" if connected else "Disconnected",
+            self.tray.showMessage(self.title(), tr("Connected") if connected else tr("Disconnected"),
                                   state_icon("idle" if connected else "disconnected"), 3000)
         self.was_connected = connected
         prefs = settings.load()
@@ -180,31 +186,40 @@ class Tray:
 
         self.tray.setIcon(state_icon(s.css_class()))
         if not connected:
-            self.a_status.setText(f"No {self.title()} connected")
+            self.a_status.setText(tr("No {device} connected").format(device=self.title()))
             self.a_detail.setVisible(False)
             self.a_warn.setVisible(False)
-            self.tray.setToolTip(f"{self.title()}: not connected")
+            self.tray.setToolTip(tr("{device}: not connected").format(device=self.title()))
         else:
-            desc = s.k7.stream.describe()
+            from .window import describe
+            desc = describe(s.k7.stream)
             self.a_status.setText(f"{self.title()}: {desc}")
             detail = []
+            if s.direct:
+                detail.append(tr("used directly by {program}").format(program=s.direct.split(" (")[0]))
+            elif s.exclusive:
+                detail.append(tr("released for direct players"))
             if s.eq_on:
-                detail.append(f"EQ: {s.eq_profile}")
+                detail.append(tr("EQ: {profile}").format(profile=s.eq_profile))
             elif s.bit_perfect:
-                detail.append("bit-perfect")
+                detail.append(tr("bit-perfect"))
             if s.sink and s.sink.volume is not None:
-                detail.append(f"volume {s.sink.volume * 100:.0f}%" + (" (muted)" if s.sink.muted else ""))
+                detail.append(tr("volume {percent}").format(percent=f"{s.sink.volume * 100:.0f}%")
+                              + (tr(" (muted)") if s.sink.muted else ""))
             self.a_detail.setText(", ".join(detail))
             self.a_detail.setVisible(bool(detail))
-            why = s.why_resampled()
+            why = s.why_resampled(tr)
             self.a_warn.setText(f"⚠ {why[0]}" if why else "")
             self.a_warn.setVisible(bool(why))
-            tip = [f"{self.title()}: {desc}"] + ([f"EQ: {s.eq_profile}"] if s.eq_on else []) + why
+            tip = [f"{self.title()}: {desc}"] + (
+                [tr("EQ: {profile}").format(profile=s.eq_profile)] if s.eq_on else []) + why
             self.tray.setToolTip("\n".join(tip))
 
         self._set_checked(self.a_rates, (s.allowed_rates is not None and len(s.allowed_rates) > 1)
                           or rates.is_enabled())
         self._set_checked(self.a_awake, bool(s.keepawake) or s.keepawake_config)
+        self._set_checked(self.a_excl, s.exclusive)
+        self.a_excl.setEnabled(connected)
         for name, a in self.lat_actions.items():
             a.setChecked(name == s.latency)
 
@@ -215,21 +230,21 @@ class Tray:
         on = bool(self.snap and self.snap.eq_on)
         sel = eq.selected_profile()
         g = QtGui.QActionGroup(m)
-        off = QtGui.QAction("Off (bit-perfect)", m)
+        off = QtGui.QAction(tr("Off (bit-perfect)"), m)
         off.setCheckable(True)
         off.setChecked(not on)
-        off.triggered.connect(lambda: self.run(eq.disable, "EQ off"))
+        off.triggered.connect(lambda: self.run(eq.disable, tr("EQ off")))
         g.addAction(off)
         m.addAction(off)
         for name in eq.list_profiles():
             a = QtGui.QAction(name, m)
             a.setCheckable(True)
             a.setChecked(on and name == sel)
-            a.triggered.connect(lambda _=False, n=name: self.run(lambda: eq.enable(n), "EQ on: {}"))
+            a.triggered.connect(lambda _=False, n=name: self.run(lambda: eq.enable(n), tr("EQ on: {}")))
             g.addAction(a)
             m.addAction(a)
         m.addSeparator()
-        find = QtGui.QAction("Find my headphones…", m)
+        find = QtGui.QAction(tr("Find my headphones…"), m)
         find.triggered.connect(self.open_window)
         m.addAction(find)
 
@@ -253,6 +268,10 @@ class Tray:
 
     def toggle_keepawake(self, on: bool):
         self.run(keepawake.enable if on else keepawake.disable)
+
+    def toggle_exclusive(self, on: bool):
+        self.run(exclusive.enable if on else exclusive.disable,
+                 tr("Released for direct players") if on else tr("PipeWire is using it again"))
 
     def toggle_autostart(self, on: bool):
         path = autostart_path()

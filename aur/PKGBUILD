@@ -5,7 +5,7 @@
 #   2. set pkgver below, run `updpkgsums` and `makepkg --printsrcinfo > .SRCINFO`
 #   3. copy PKGBUILD and .SRCINFO into the AUR git repo and push
 pkgname=k7ctl
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc="FiiO K7 DAC/amp status and bit-perfect setup for Linux (PipeWire)"
 arch=('any')

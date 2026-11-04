@@ -44,6 +44,7 @@ jobs:
           sh -n ci-install-check.sh
           for f in packaging/*.sh; do sh -n "$f"; done
           appstreamcli validate --no-net data/io.github.doodersrage.k7ctl.metainfo.xml
+          python3 tools/update-translations.py --check
           desktop-file-validate data/*.desktop
           man --warnings -l docs/k7ctl.1 2>&1 >/dev/null | (! grep .)
 

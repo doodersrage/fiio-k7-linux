@@ -24,6 +24,9 @@ Homepage = "https://github.com/doodersrage/fiio-k7-linux"
 [tool.setuptools]
 packages = ["k7ctl"]
 
+[tool.setuptools.package-data]
+k7ctl = ["locale/*.po", "locale/*.pot"]
+
 [tool.setuptools.dynamic]
 version = {attr = "k7ctl.__version__"}
 

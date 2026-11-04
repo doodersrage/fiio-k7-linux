@@ -1,0 +1,688 @@
+# French translation of k7ctl. See CONTRIBUTING-translations.md.
+# Machine-translated; corrections by native speakers are very welcome.
+msgid ""
+msgstr ""
+"Language: fr\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: k7ctl/curvewidget.py:93
+msgid "Pick or download a profile to see its curve"
+msgstr "Choisissez ou téléchargez un profil pour voir sa courbe"
+
+#: k7ctl/snapshot.py:70
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{app} is {rate} but the K7 is running at {dac_rate} (PipeWire only allows one rate: k7ctl rates enable)"
+msgstr "{app} est en {rate}, mais le K7 fonctionne en {dac_rate} (PipeWire n’autorise qu’une fréquence : k7ctl rates enable)"
+
+#: k7ctl/snapshot.py:73
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{app} is {rate} but the K7 is running at {dac_rate} because {others} started first"
+msgstr "{app} est en {rate}, mais le K7 fonctionne en {dac_rate} parce que {others} a démarré en premier"
+
+#: k7ctl/snapshot.py:75
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{app} is {rate} but the K7 is running at {dac_rate}"
+msgstr "{app} est en {rate}, mais le K7 fonctionne en {dac_rate}"
+
+#: k7ctl/tray.py:51
+msgid "Open k7ctl…"
+msgstr "Ouvrir k7ctl…"
+
+#: k7ctl/tray.py:58 k7ctl/tray.py:189
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "No {device} connected"
+msgstr "Aucun {device} connecté"
+
+#: k7ctl/tray.py:63
+msgid "Use the music's sample rate"
+msgstr "Utiliser la fréquence de la musique"
+
+#: k7ctl/tray.py:64
+msgid "Keep the K7 awake (no cut-off sounds)"
+msgstr "Garder le K7 actif (sons non coupés)"
+
+#: k7ctl/tray.py:65
+msgid "Release for direct players (native DSD)"
+msgstr "Libérer pour les lecteurs directs (DSD natif)"
+
+#: k7ctl/tray.py:70
+msgid "Latency"
+msgstr "Latence"
+
+#: k7ctl/tray.py:84
+msgid "Notifications"
+msgstr "Notifications"
+
+#: k7ctl/tray.py:93
+msgid "Start at login"
+msgstr "Démarrer à la connexion"
+
+#: k7ctl/tray.py:95
+msgid "Quit"
+msgstr "Quitter"
+
+#: k7ctl/tray.py:161
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Now playing {what}"
+msgstr "Lecture en {what}"
+
+#: k7ctl/tray.py:170
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{apps} resampled to {rate}"
+msgstr "{apps} rééchantillonné en {rate}"
+
+#: k7ctl/tray.py:179
+msgid "Connected"
+msgstr "Connecté"
+
+#: k7ctl/tray.py:179
+msgid "Disconnected"
+msgstr "Déconnecté"
+
+#: k7ctl/tray.py:192
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{device}: not connected"
+msgstr "{device} : non connecté"
+
+#: k7ctl/tray.py:199
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "used directly by {program}"
+msgstr "utilisé directement par {program}"
+
+#: k7ctl/tray.py:207
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "volume {percent}"
+msgstr "volume {percent}"
+
+#: k7ctl/tray.py:233
+msgid "Off (bit-perfect)"
+msgstr "Désactivé (bit-perfect)"
+
+#: k7ctl/tray.py:236
+msgid "EQ off"
+msgstr "EQ désactivé"
+
+#: k7ctl/tray.py:243
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "EQ on: {}"
+msgstr "EQ activé : {}"
+
+#: k7ctl/tray.py:247
+msgid "Find my headphones…"
+msgstr "Trouver mon casque…"
+
+#: k7ctl/tray.py:274
+msgid "Released for direct players"
+msgstr "Libéré pour les lecteurs directs"
+
+#: k7ctl/tray.py:274
+msgid "PipeWire is using it again"
+msgstr "PipeWire l’utilise à nouveau"
+
+#: k7ctl/window.py:27
+msgid "default"
+msgstr "par défaut"
+
+#: k7ctl/window.py:27
+msgid "stable"
+msgstr "stable"
+
+#: k7ctl/window.py:27
+msgid "low latency"
+msgstr "faible latence"
+
+#: k7ctl/window.py:29
+msgid "PipeWire's defaults"
+msgstr "Valeurs par défaut de PipeWire"
+
+#: k7ctl/window.py:30
+msgid "bigger buffers: fixes crackles at high sample rates, more latency"
+msgstr "tampons plus grands : évite les craquements aux fréquences élevées, plus de latence"
+
+#: k7ctl/window.py:31
+msgid "small buffers for games and calls; may crackle at high rates"
+msgstr "petits tampons pour les jeux et les appels ; peut craquer aux fréquences élevées"
+
+#: k7ctl/window.py:38
+msgid "idle"
+msgstr "inactif"
+
+#: k7ctl/window.py:41
+msgid "native"
+msgstr "natif"
+
+#: k7ctl/window.py:42
+msgid "(paused)"
+msgstr "(en pause)"
+
+#: k7ctl/window.py:98
+msgid "Looking for the K7…"
+msgstr "Recherche du K7…"
+
+#: k7ctl/window.py:104
+msgid "Refresh"
+msgstr "Actualiser"
+
+#: k7ctl/window.py:121
+msgid "Dismiss"
+msgstr "Fermer"
+
+#: k7ctl/window.py:150
+msgid "Now playing"
+msgstr "Lecture en cours"
+
+#: k7ctl/window.py:155
+msgid "Playing:"
+msgstr "Lecture :"
+
+#: k7ctl/window.py:156
+msgid "Format:"
+msgstr "Format :"
+
+#: k7ctl/window.py:157
+msgid "Bit-perfect:"
+msgstr "Bit-perfect :"
+
+#: k7ctl/window.py:160
+msgid "Application"
+msgstr "Application"
+
+#: k7ctl/window.py:160
+msgid "Sample rate"
+msgstr "Fréquence d’échantillonnage"
+
+#: k7ctl/window.py:179
+msgid "Bit-perfect playback"
+msgstr "Lecture bit-perfect"
+
+#: k7ctl/window.py:183
+msgid "Use the music's own sample rate"
+msgstr "Utiliser la fréquence d’échantillonnage d’origine de la musique"
+
+#: k7ctl/window.py:185
+msgid "Sample rate:"
+msgstr "Fréquence :"
+
+#: k7ctl/window.py:186
+msgid "Otherwise PipeWire resamples everything to 48 kHz. It can only switch when nothing else is playing at another rate."
+msgstr "Sinon, PipeWire rééchantillonne tout en 48 kHz. Il ne peut changer que si rien d’autre ne joue à une autre fréquence."
+
+#: k7ctl/window.py:191
+msgid "Set to 100%"
+msgstr "Mettre à 100 %"
+
+#: k7ctl/window.py:196
+msgid "PipeWire volume:"
+msgstr "Volume PipeWire :"
+
+#: k7ctl/window.py:197
+msgid "The K7 has no volume control over USB, so this is software volume: below 100% it reduces resolution. Use the K7's knob instead."
+msgstr "Le K7 n’a pas de réglage de volume par USB : il s’agit donc d’un volume logiciel, qui réduit la résolution en dessous de 100 %. Utilisez plutôt la molette du K7."
+
+#: k7ctl/window.py:202
+msgid "Make the K7 the default"
+msgstr "Faire du K7 la sortie par défaut"
+
+#: k7ctl/window.py:207
+msgid "Default output:"
+msgstr "Sortie par défaut :"
+
+#: k7ctl/window.py:209
+msgid "Keep the K7 awake when idle"
+msgstr "Garder le K7 actif au repos"
+
+#: k7ctl/window.py:211
+msgid "Keep awake:"
+msgstr "Garder actif :"
+
+#: k7ctl/window.py:212
+msgid "Stops the start of sounds being cut off after a pause. Changing it restarts WirePlumber (about a second of silence)."
+msgstr "Évite que le début des sons soit coupé après une pause. Le changer redémarre WirePlumber (environ une seconde de silence)."
+
+#: k7ctl/window.py:215
+msgid "Release the K7 for players that use it directly"
+msgstr "Libérer le K7 pour les lecteurs qui l’utilisent directement"
+
+#: k7ctl/window.py:217
+msgid "Direct players:"
+msgstr "Lecteurs directs :"
+
+#: k7ctl/window.py:218
+msgid "For native DSD: PipeWire can't send DSD, so players like MPD or Strawberry need the K7 to themselves (ALSA device hw:CARD=K7). While released, other apps play through another output. It stays released until you untick this."
+msgstr "Pour le DSD natif : PipeWire ne peut pas envoyer de DSD, donc des lecteurs comme MPD ou Strawberry ont besoin du K7 pour eux seuls (périphérique ALSA hw:CARD=K7). Pendant ce temps, les autres applications passent par une autre sortie. Il reste libéré jusqu’à ce que vous décochiez cette case."
+
+#: k7ctl/window.py:224 k7ctl/tray.py:75
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{preset} ({samples} samples)"
+msgstr "{preset} ({samples} échantillons)"
+
+#: k7ctl/window.py:229
+msgid "Latency:"
+msgstr "Latence :"
+
+#: k7ctl/window.py:233 k7ctl/tray.py:85
+msgid "When the sample rate changes"
+msgstr "Quand la fréquence d’échantillonnage change"
+
+#: k7ctl/window.py:235 k7ctl/tray.py:86
+msgid "When something starts being resampled"
+msgstr "Quand quelque chose commence à être rééchantillonné"
+
+#: k7ctl/window.py:240
+msgid "Notify:"
+msgstr "Notifier :"
+
+#: k7ctl/window.py:241
+msgid "Notifications come from the tray icon, so it needs to be running."
+msgstr "Les notifications viennent de l’icône de la zone de notification, qui doit donc être lancée."
+
+#: k7ctl/window.py:245 k7ctl/tray.py:67
+msgid "Headphone EQ"
+msgstr "Égaliseur de casque"
+
+#: k7ctl/window.py:249
+msgid "EQ on"
+msgstr "EQ activé"
+
+#: k7ctl/window.py:258
+msgid "Import…"
+msgstr "Importer…"
+
+#: k7ctl/window.py:259
+msgid "Import an Equalizer APO / ParametricEQ.txt file"
+msgstr "Importer un fichier Equalizer APO / ParametricEQ.txt"
+
+#: k7ctl/window.py:262
+msgid "Remove"
+msgstr "Supprimer"
+
+#: k7ctl/window.py:268
+msgid "Solid: what you hear (with the preamp that prevents clipping). Dashed: the correction's shape."
+msgstr "Trait plein : ce que vous entendez (avec le préampli qui évite la saturation). Pointillés : la forme de la correction."
+
+#: k7ctl/window.py:271
+msgid "With EQ on, playback is processed and no longer bit-perfect. Turn it off for bit-perfect listening."
+msgstr "Avec l’EQ activé, la lecture est traitée et n’est plus bit-perfect. Désactivez-le pour une écoute bit-perfect."
+
+#: k7ctl/window.py:276
+msgid "Find your headphones, e.g. HD 600, Sundara, Moondrop Aria"
+msgstr "Trouvez votre casque, p. ex. HD 600, Sundara, Moondrop Aria"
+
+#: k7ctl/window.py:280
+msgid "Search AutoEQ"
+msgstr "Chercher dans AutoEQ"
+
+#: k7ctl/window.py:291
+msgid "Download and turn EQ on"
+msgstr "Télécharger et activer l’EQ"
+
+#: k7ctl/window.py:298
+msgid "Profiles from AutoEQ (github.com/jaakkopasanen/AutoEq). Several sources may have measured the same headphones; oratory1990 and crinacle are good first choices."
+msgstr "Profils d’AutoEQ (github.com/jaakkopasanen/AutoEq). Plusieurs sources ont parfois mesuré le même casque ; oratory1990 et crinacle sont de bons premiers choix."
+
+#: k7ctl/window.py:304
+msgid "Device"
+msgstr "Périphérique"
+
+#: k7ctl/window.py:308
+msgid "DAC:"
+msgstr "DAC :"
+
+#: k7ctl/window.py:310
+msgid "Firmware:"
+msgstr "Firmware :"
+
+#: k7ctl/window.py:310
+msgid "USB:"
+msgstr "USB :"
+
+#: k7ctl/window.py:310
+msgid "ALSA device:"
+msgstr "Périphérique ALSA :"
+
+#: k7ctl/window.py:311
+msgid "Sample rates:"
+msgstr "Fréquences :"
+
+#: k7ctl/window.py:311
+msgid "Formats:"
+msgstr "Formats :"
+
+#: k7ctl/window.py:317
+msgid "Copy diagnostics"
+msgstr "Copier le diagnostic"
+
+#: k7ctl/window.py:318
+msgid "Copy a report for bug reports to the clipboard"
+msgstr "Copier un rapport pour signaler un bug dans le presse-papiers"
+
+#: k7ctl/window.py:322
+msgid "Check for updates"
+msgstr "Rechercher des mises à jour"
+
+#: k7ctl/window.py:323
+msgid "Open FiiO's firmware downloads to compare with the installed version"
+msgstr "Ouvrir les téléchargements de firmware de FiiO pour comparer avec la version installée"
+
+#: k7ctl/window.py:326
+msgid "How to update"
+msgstr "Comment mettre à jour"
+
+#: k7ctl/window.py:328
+msgid "Firmware"
+msgstr "Firmware"
+
+#: k7ctl/window.py:331
+msgid "The K7's volume knob, gain switch and input/output selector are physical only: the K7 has no way to change them over USB."
+msgstr "La molette de volume, le sélecteur de gain et le sélecteur d’entrée/sortie du K7 sont uniquement physiques : le K7 ne permet pas de les changer par USB."
+
+#: k7ctl/window.py:364
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Couldn't read the status: {error}"
+msgstr "Impossible de lire l’état : {error}"
+
+#: k7ctl/window.py:391
+msgid "Not connected. Plug in the K7 and switch it to USB input."
+msgstr "Non connecté. Branchez le K7 et mettez-le sur l’entrée USB."
+
+#: k7ctl/window.py:392
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Not connected ({device})."
+msgstr "Non connecté ({device})."
+
+#: k7ctl/window.py:404
+msgid "Idle"
+msgstr "Inactif"
+
+#: k7ctl/window.py:405
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Playing {what}"
+msgstr "Lecture en {what}"
+
+#: k7ctl/window.py:407
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "directly by {program}"
+msgstr "directement par {program}"
+
+#: k7ctl/window.py:409 k7ctl/tray.py:201
+msgid "released for direct players"
+msgstr "libéré pour les lecteurs directs"
+
+#: k7ctl/window.py:411 k7ctl/tray.py:203 k7ctl/tray.py:215
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "EQ: {profile}"
+msgstr "EQ : {profile}"
+
+#: k7ctl/window.py:413 k7ctl/tray.py:205
+msgid "bit-perfect"
+msgstr "bit-perfect"
+
+#: k7ctl/window.py:415
+msgid "not bit-perfect"
+msgstr "pas bit-perfect"
+
+#: k7ctl/window.py:418
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{format}, {channels} channels"
+msgstr "{format}, {channels} canaux"
+
+#: k7ctl/window.py:421
+msgid "– (nothing playing)"
+msgstr "– (aucune lecture)"
+
+#: k7ctl/window.py:426
+msgid "EQ is on"
+msgstr "l’EQ est activé"
+
+#: k7ctl/window.py:428
+msgid "resampled"
+msgstr "rééchantillonné"
+
+#: k7ctl/window.py:430
+msgid "volume below 100%"
+msgstr "volume inférieur à 100 %"
+
+#: k7ctl/window.py:431
+msgid "Yes"
+msgstr "Oui"
+
+#: k7ctl/window.py:432
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "No: {reasons}"
+msgstr "Non : {reasons}"
+
+#: k7ctl/window.py:438 k7ctl/tray.py:208
+msgid " (muted)"
+msgstr " (muet)"
+
+#: k7ctl/window.py:444
+msgid "another output"
+msgstr "une autre sortie"
+
+#: k7ctl/window.py:446 k7ctl/window.py:447
+msgid "unknown"
+msgstr "inconnu"
+
+#: k7ctl/window.py:451
+msgid "native DSD"
+msgstr "DSD natif"
+
+#: k7ctl/window.py:463
+msgid "Currently a custom setting (not from k7ctl)."
+msgstr "Actuellement un réglage personnalisé (pas de k7ctl)."
+
+#: k7ctl/window.py:475
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "resampled to {rate}"
+msgstr "rééchantillonné en {rate}"
+
+#: k7ctl/window.py:480
+msgid "unchanged"
+msgstr "inchangé"
+
+#: k7ctl/window.py:506
+msgid "Auto (FiiO K7)"
+msgstr "Automatique (FiiO K7)"
+
+#: k7ctl/window.py:508
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{device} (not connected)"
+msgstr "{device} (non connecté)"
+
+#: k7ctl/window.py:528
+msgid "No profiles yet: search below"
+msgstr "Pas encore de profil : cherchez ci-dessous"
+
+#: k7ctl/window.py:589
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{action} failed: {error}"
+msgstr "{action} a échoué : {error}"
+
+#: k7ctl/window.py:603
+msgid "Enabling native sample rates"
+msgstr "Activation des fréquences natives"
+
+#: k7ctl/window.py:604
+msgid "PipeWire now plays at the music's own sample rate."
+msgstr "PipeWire lit maintenant à la fréquence d’origine de la musique."
+
+#: k7ctl/window.py:606
+msgid "Going back to 48 kHz only"
+msgstr "Retour à 48 kHz uniquement"
+
+#: k7ctl/window.py:606
+msgid "PipeWire resamples to 48 kHz again."
+msgstr "PipeWire rééchantillonne de nouveau en 48 kHz."
+
+#: k7ctl/window.py:610
+msgid "Restarting WirePlumber to keep the K7 awake"
+msgstr "Redémarrage de WirePlumber pour garder le K7 actif"
+
+#: k7ctl/window.py:611
+msgid "The K7 now stays awake when idle."
+msgstr "Le K7 reste maintenant actif au repos."
+
+#: k7ctl/window.py:613
+msgid "Restarting WirePlumber"
+msgstr "Redémarrage de WirePlumber"
+
+#: k7ctl/window.py:614
+msgid "The K7 suspends after a few idle seconds again."
+msgstr "Le K7 se met de nouveau en veille après quelques secondes d’inactivité."
+
+#: k7ctl/window.py:618
+msgid "Releasing the K7 from PipeWire"
+msgstr "Libération du K7 par PipeWire"
+
+#: k7ctl/window.py:620
+msgid "Giving the K7 back to PipeWire"
+msgstr "Restitution du K7 à PipeWire"
+
+#: k7ctl/window.py:625
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Setting latency to {preset}"
+msgstr "Réglage de la latence sur {preset}"
+
+#: k7ctl/window.py:626
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Latency: {preset}."
+msgstr "Latence : {preset}."
+
+#: k7ctl/window.py:633
+msgid "Set volume to 100%"
+msgstr "Mettre le volume à 100 %"
+
+#: k7ctl/window.py:634
+msgid "This sets PipeWire's volume for the K7 to 100% so the DAC gets full resolution; you then control the volume with the K7's knob.\n\nTurn the K7's knob down first. Continue?"
+msgstr "Cela met le volume PipeWire du K7 à 100 % pour que le DAC reçoive la pleine résolution ; vous réglez ensuite le volume avec la molette du K7.\n\nBaissez d’abord la molette du K7. Continuer ?"
+
+#: k7ctl/window.py:637
+msgid "Setting the volume"
+msgstr "Réglage du volume"
+
+#: k7ctl/window.py:638
+msgid "Volume 100%. Use the K7's knob for volume."
+msgstr "Volume à 100 %. Utilisez la molette du K7 pour le volume."
+
+#: k7ctl/window.py:643
+msgid "Making the K7 the default output"
+msgstr "Le K7 devient la sortie par défaut"
+
+#: k7ctl/window.py:644
+msgid "The K7 is the default output."
+msgstr "Le K7 est la sortie par défaut."
+
+#: k7ctl/window.py:651
+msgid "Find your headphones below first."
+msgstr "Cherchez d’abord votre casque ci-dessous."
+
+#: k7ctl/window.py:653
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Turning EQ on ({profile})"
+msgstr "Activation de l’EQ ({profile})"
+
+#: k7ctl/window.py:654
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "EQ on: {}. Playback is processed (not bit-perfect)."
+msgstr "EQ activé : {}. La lecture est traitée (pas bit-perfect)."
+
+#: k7ctl/window.py:656 k7ctl/window.py:686
+msgid "Turning EQ off"
+msgstr "Désactivation de l’EQ"
+
+#: k7ctl/window.py:656
+msgid "EQ off. The K7 is the default output again."
+msgstr "EQ désactivé. Le K7 est de nouveau la sortie par défaut."
+
+#: k7ctl/window.py:663
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "EQ: {}."
+msgstr "EQ : {}."
+
+#: k7ctl/window.py:663
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Switching EQ to {profile}"
+msgstr "Passage de l’EQ à {profile}"
+
+#: k7ctl/window.py:666
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Selected {profile}. Tick “EQ on” to use it."
+msgstr "{profile} sélectionné. Cochez « EQ activé » pour l’utiliser."
+
+#: k7ctl/window.py:671
+msgid "Import a parametric EQ"
+msgstr "Importer un EQ paramétrique"
+
+#: k7ctl/window.py:671
+msgid "EQ files (*.txt);;All files (*)"
+msgstr "Fichiers EQ (*.txt);;Tous les fichiers (*)"
+
+#: k7ctl/window.py:674
+msgid "Importing"
+msgstr "Importation"
+
+#: k7ctl/window.py:674
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Imported {}."
+msgstr "{} importé."
+
+#: k7ctl/window.py:681
+msgid "Remove profile"
+msgstr "Supprimer le profil"
+
+#: k7ctl/window.py:682
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Remove the EQ profile “{profile}”?"
+msgstr "Supprimer le profil d’EQ « {profile} » ?"
+
+#: k7ctl/window.py:687
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Removed {profile}; EQ is off."
+msgstr "{profile} supprimé ; l’EQ est désactivé."
+
+#: k7ctl/window.py:692
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Removed {profile}."
+msgstr "{profile} supprimé."
+
+#: k7ctl/window.py:709
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{count} profiles found (showing {shown}). Pick one and download it."
+msgstr "{count} profils trouvés ({shown} affichés). Choisissez-en un et téléchargez-le."
+
+#: k7ctl/window.py:711
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "{count} profiles found. Pick one and download it."
+msgstr "{count} profils trouvés. Choisissez-en un et téléchargez-le."
+
+#: k7ctl/window.py:714
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "No AutoEQ profiles match “{query}”."
+msgstr "Aucun profil AutoEQ ne correspond à « {query} »."
+
+#: k7ctl/window.py:715
+msgid "Searching AutoEQ"
+msgstr "Recherche dans AutoEQ"
+
+#: k7ctl/window.py:730
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "EQ on: {}."
+msgstr "EQ activé : {}."
+
+#: k7ctl/window.py:730
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Downloading {profile}"
+msgstr "Téléchargement de {profile}"
+
+#: k7ctl/window.py:740
+msgid "Switching device"
+msgstr "Changement de périphérique"
+
+#: k7ctl/window.py:748
+#. Keep the {names} in braces as they are; they're filled in by the program.
+msgid "Diagnostics copied to the clipboard ({lines} lines). Paste them into a bug report."
+msgstr "Diagnostic copié dans le presse-papiers ({lines} lignes). Collez-le dans un rapport de bug."
+
+#: k7ctl/window.py:750
+msgid "Collecting diagnostics"
+msgstr "Collecte du diagnostic"

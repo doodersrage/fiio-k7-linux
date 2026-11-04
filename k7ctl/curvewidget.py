@@ -90,7 +90,7 @@ class EqCurve(QtWidgets.QWidget):
 
         if not self.points:
             p.setPen(text)
-            p.drawText(r, Qt.AlignmentFlag.AlignCenter, "Pick or download a profile to see its curve")
+            p.drawText(r, Qt.AlignmentFlag.AlignCenter, tr("Pick or download a profile to see its curve"))
             p.end()
             return
 
