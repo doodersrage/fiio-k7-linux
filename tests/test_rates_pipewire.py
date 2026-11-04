@@ -64,3 +64,21 @@ def test_parse_wpctl_volume():
     assert pipewire.parse_wpctl_volume("Volume: 1.00\n") == (1.0, False)
     assert pipewire.parse_wpctl_volume("Volume: 0.45 [MUTED]\n") == (0.45, True)
     assert pipewire.parse_wpctl_volume("") == (None, False)
+
+
+def test_dsd_stream_is_not_resampled():
+    dump = [
+        {"id": 53, "type": "PipeWire:Interface:Node", "info": {"state": "running", "props": {
+            "media.class": "Audio/Sink", "alsa.components": "USB2972:0047", "node.name": "k7"},
+            "params": {"Format": [{"mediaSubtype": "dsd", "rate": 352800, "channels": 2}]}}},
+        {"id": 97, "type": "PipeWire:Interface:Node", "info": {"state": "running", "props": {
+            "application.name": "pw-dsdplay", "node.name": "pw-dsdplay"},
+            "params": {"Format": [{"mediaSubtype": "dsd", "rate": 352800, "channels": 2}]}}},
+        {"id": 200, "type": "PipeWire:Interface:Link", "info": {"output-node-id": 97, "input-node-id": 53}},
+    ]
+    sink = pipewire.sink_from_dump(dump, with_volume=False)
+    (s,) = sink.streams
+    assert s.dsd and s.rate_text == "DSD64"
+    assert sink.resampled() == []
+    pcm = pipewire.Stream(1, "x", 44100, "S32LE", True)
+    assert pcm.rate_text == "44.1 kHz"

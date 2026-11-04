@@ -49,9 +49,9 @@ def status_lines(s: snapshot.Snapshot) -> list[str]:
     if sink:
         for x in sink.playing:
             mark = ""
-            if sink.rate and x.rate and x.rate != sink.rate:
+            if sink.rate and x.rate and not x.dsd and x.rate != sink.rate:
                 mark = f"  -> resampled to {format_rate(sink.rate)}"
-            rate = f", {format_rate(x.rate)}" if x.rate else ""
+            rate = f", {x.rate_text}" if x.rate else ""
             lines.append(f"  Stream:       {x.app}{rate}{mark}")
         vol = f"{sink.volume * 100:.0f}%" if sink.volume is not None else "unknown"
         if sink.muted:

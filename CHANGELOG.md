@@ -8,7 +8,9 @@
 - **Translations**: the window and tray in German, Spanish and French (machine-translated; corrections
   welcome, see CONTRIBUTING-translations.md). The command line stays English.
 - Found why `pw-dsdplay` fails with "no target node available": DSD needs the K7 to itself, and any other
-  stream connected to it, even a paused browser tab, blocks it. See the README's DSD section.
+  stream connected to it, even a paused browser tab, blocks it. With nothing else connected it plays native DSD.
+  See the README's DSD section.
+- DSD streams show as e.g. "DSD64" instead of PipeWire's byte rate, and aren't reported as resampled.
 
 ## 0.2.0
 

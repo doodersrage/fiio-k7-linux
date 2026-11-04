@@ -248,7 +248,8 @@ audio_output {
 }
 ```
 
-**2. Through PipeWire** (`pw-dsdplay file.dsf`). PipeWire sends DSD only to an output nothing else is connected to.
+**2. Through PipeWire** (`pw-dsdplay file.dsf`). Works (tested), but PipeWire sends DSD only to an output nothing else
+is connected to.
 **Any other stream connected to the K7 blocks it, even a paused browser tab**, and the error,
 "no target node available", doesn't say so. WirePlumber's log has the real reason: `target is already linked,
 cannot link exclusively`. Close or move the other streams first (`k7ctl status` lists the ones playing; a

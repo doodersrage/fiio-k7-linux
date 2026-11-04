@@ -470,8 +470,8 @@ class Window(W.QMainWindow):
         self.streams.setRowCount(len(rows))
         for i, x in enumerate(rows):
             self.streams.setItem(i, 0, W.QTableWidgetItem(x.app))
-            self.streams.setItem(i, 1, W.QTableWidgetItem(format_rate(x.rate) if x.rate else "–"))
-            if sink.rate and x.rate and x.rate != sink.rate:
+            self.streams.setItem(i, 1, W.QTableWidgetItem(x.rate_text or "–"))
+            if sink.rate and x.rate and not x.dsd and x.rate != sink.rate:
                 st = W.QTableWidgetItem(tr("resampled to {rate}").format(rate=format_rate(sink.rate)))
                 st.setForeground(QtGui.QBrush(QtGui.QColor(*WARN)))
             elif x.is_eq:

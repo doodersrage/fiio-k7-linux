@@ -33,6 +33,13 @@ class Stream:
     format: str | None
     running: bool
     is_eq: bool = False
+    dsd: bool = False    # native DSD: PipeWire's rate is in bytes per second (DSD64 = 352800)
+
+    @property
+    def rate_text(self) -> str:
+        if self.dsd and self.rate:
+            return f"DSD{self.rate * 8 // 44100}"
+        return f"{self.rate / 1000:g} kHz" if self.rate else ""
 
 
 @dataclass
@@ -57,7 +64,7 @@ class Sink:
         """Playing streams whose rate differs from the K7's."""
         if not self.rate:
             return []
-        return [s for s in self.playing if s.rate and s.rate != self.rate]
+        return [s for s in self.playing if s.rate and not s.dsd and s.rate != self.rate]
 
     def holders(self) -> list[Stream]:
         """Playing streams already at the K7's rate (they decide the rate)."""
@@ -133,6 +140,7 @@ def parse_streams(pw_dump: list, sink_id: int) -> list[Stream]:
             format=fmt.get("format"),
             running=(node.get("info") or {}).get("state") == "running",
             is_eq=name.startswith(EQ_NODE),
+            dsd=fmt.get("mediaSubtype") == "dsd",
         )
     return list(seen.values())
 
