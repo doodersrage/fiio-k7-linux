@@ -16,8 +16,8 @@ except ImportError:  # pragma: no cover - depends on what's installed
         from PySide6.QtCore import Signal
         BINDING = "PySide6"
     except ImportError:
-        sys.exit("The window and tray icon need PyQt6 or PySide6 "
-                 "(Arch: sudo pacman -S python-pyqt6, Debian/Ubuntu/Fedora: python3-pyqt6).")
+        raise ModuleNotFoundError("The window and tray icon need PyQt6 or PySide6 "
+                                  "(Arch: sudo pacman -S python-pyqt6, Debian/Ubuntu/Fedora: python3-pyqt6).")
 
 ICON_NAMES = ("audio-card", "audio-headphones")
 

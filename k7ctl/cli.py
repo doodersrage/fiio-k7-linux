@@ -359,12 +359,18 @@ def cmd_firmware(args) -> int:
 
 
 def cmd_tray(args) -> int:
-    from .tray import main as tray_main
+    try:
+        from .tray import main as tray_main
+    except ImportError as e:
+        return _err(str(e))
     return tray_main()
 
 
 def cmd_gui(args) -> int:
-    from .window import main as window_main
+    try:
+        from .window import main as window_main
+    except ImportError as e:
+        return _err(str(e))
     return window_main()
 
 
