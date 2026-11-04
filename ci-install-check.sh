@@ -20,8 +20,17 @@ for f in \
 do
     test -f "$f"
 done
-ls /usr/share/man/man1/k7ctl.1*
-ls /usr/share/doc/k7ctl/
+# Docs and man pages: CI containers (Arch NoExtract, Fedora tsflags=nodocs) skip
+# extracting them, so check the package's file list rather than the disk.
+packaged_files() {
+    if command -v pacman >/dev/null && pacman -Q k7ctl >/dev/null 2>&1; then pacman -Qlq k7ctl
+    elif command -v rpm >/dev/null && rpm -q k7ctl >/dev/null 2>&1; then rpm -ql k7ctl
+    elif command -v dpkg >/dev/null && dpkg -s k7ctl >/dev/null 2>&1; then dpkg -L k7ctl
+    else find /usr/share/man/man1 /usr/share/doc/k7ctl 2>/dev/null
+    fi
+}
+packaged_files | grep -q '/usr/share/man/man1/k7ctl\.1'
+packaged_files | grep -q '/usr/share/doc/k7ctl/waybar/config\.jsonc'
 if command -v desktop-file-validate >/dev/null; then
     desktop-file-validate /usr/share/applications/k7ctl-tray.desktop
 fi
