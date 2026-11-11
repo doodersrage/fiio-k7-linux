@@ -64,6 +64,16 @@ directly, e.g. MPD for native DSD; other apps play through another output meanwh
 restores the previous profile and default output. WirePlumber remembers it, so the DAC stays
 released (also after a reboot) until
 .BR "exclusive off" .
+.TP
+.BR "exclusive auto" " [\fIplayer\fR...|\fBoff\fR]"
+Do it automatically: while one of the named players runs (program names as in
+.BR ps ),
+the DAC is released; when they've all closed, PipeWire takes it back. Runs as the
+.B k7ctl\-exclusive
+systemd user service. It only undoes what it did itself: turning exclusive on or off by hand wins.
+Without arguments, shows the players it watches.
+.B auto off
+stops watching.
 .SS Device
 .TP
 .B devices
@@ -153,6 +163,10 @@ Stop the EQ and make the K7 the default output again.
 .B eq toggle
 Turn the EQ on (with the selected profile) or off.
 .TP
+.B eq next
+Turn EQ on with the next saved profile (after the selected one), e.g. from a keyboard shortcut
+when you switch headphones.
+.TP
 .BR "eq list" ", " "eq status" ", " "eq remove \fIprofile\fR"
 Saved profiles, whether EQ is on, delete a profile.
 .SS Desktop
@@ -175,10 +189,14 @@ Saved EQ profiles.
 The selected EQ profile.
 .TP
 .I ~/.config/k7ctl/settings.json
-The DAC to use and notification settings.
+The DAC to use, notification settings and the players for automatic exclusive mode.
 .TP
 .I ~/.config/systemd/user/k7ctl\-eq.service
 The EQ service, while EQ is on.
+.TP
+.I ~/.config/systemd/user/k7ctl\-exclusive.service
+The automatic exclusive mode service, while players are set with
+.BR "exclusive auto" .
 .TP
 .I ~/.config/autostart/k7ctl\-tray.desktop
 Starts the tray icon at login (the tray's "Start at login").

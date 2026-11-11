@@ -11,6 +11,7 @@ DEFAULTS = {
     "device": "auto",        # "auto" (the FiiO K7) or a USB id "vvvv:pppp"
     "notify_rate": False,    # tray: notify when the sample rate changes
     "notify_resample": False,  # tray: notify when something starts being resampled
+    "auto_exclusive": [],    # players (process names) that get the DAC to themselves while running
 }
 
 
@@ -19,7 +20,7 @@ def path() -> Path:
 
 
 def load() -> dict:
-    s = dict(DEFAULTS)
+    s = {k: (list(v) if isinstance(v, list) else v) for k, v in DEFAULTS.items()}
     try:
         data = json.loads(path().read_text())
         if isinstance(data, dict):

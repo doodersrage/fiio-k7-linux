@@ -1,6 +1,6 @@
 # fish completion for k7ctl
 set -l cmds status rates latency resample keepawake exclusive eq crossfeed volume-max setup firmware devices use diag gui tray
-set -l eqacts status list search get import remove on off toggle
+set -l eqacts status list search get import remove on off toggle next
 
 function __k7ctl_profiles
     set -l dir (set -q XDG_DATA_HOME; and echo $XDG_DATA_HOME; or echo $HOME/.local/share)/k7ctl/eq
@@ -33,7 +33,7 @@ complete -c k7ctl -n "__fish_seen_subcommand_from status" -l interval -x -d 'Sec
 complete -c k7ctl -n "__fish_seen_subcommand_from rates" -a 'enable disable status'
 complete -c k7ctl -n "__fish_seen_subcommand_from latency" -a 'default stable low-latency'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a exclusive -d 'Release the DAC for direct players'
-complete -c k7ctl -n "__fish_seen_subcommand_from exclusive" -a 'on off status'
+complete -c k7ctl -n "__fish_seen_subcommand_from exclusive" -a 'on off status auto'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a crossfeed -d 'Headphone crossfeed'
 complete -c k7ctl -n "__fish_seen_subcommand_from crossfeed" -a 'off light medium strong'
 complete -c k7ctl -n "not __fish_seen_subcommand_from $cmds" -a resample -d 'Resampler quality'

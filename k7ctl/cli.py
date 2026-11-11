@@ -325,6 +325,11 @@ def cmd_eq(args) -> int:
             eq.disable()
             print("EQ off. The K7 is the default output again.")
             return 0
+        if a == "next":
+            if not device.find():
+                return _no_k7()
+            print(f"EQ on: {eq.enable(eq.next_profile())}.")
+            return 0
     except eq.EqError as e:
         return _err(str(e))
     except OSError as e:
@@ -432,9 +437,40 @@ def cmd_resample(args) -> int:
     return 0
 
 
+def cmd_exclusive_auto(players: list[str]) -> int:
+    if not players:
+        watched = exclusive.auto_players()
+        if not watched:
+            print("Automatic exclusive mode: off.")
+            print("Turn it on with: k7ctl exclusive auto <player> [<player>...]  (e.g. strawberry mpd)")
+            return 0
+        print(f"Automatic exclusive mode: on for {', '.join(watched)}"
+              + ("" if exclusive.watcher_running() else
+                 f" (but its service isn't running; see: journalctl --user -u {exclusive.SERVICE})"))
+        running = exclusive.running_players(watched)
+        print(f"Running now: {', '.join(sorted(running)) if running else 'none of them'}")
+        return 0
+    if [p.lower() for p in players] == ["off"]:
+        exclusive.set_auto_players([])
+        print("Automatic exclusive mode off.")
+        return 0
+    names = exclusive.parse_players(" ".join(players))
+    exclusive.set_auto_players(names)
+    print(f"While {' or '.join(names)} runs, PipeWire releases the {device.display_name()}; "
+          "when they've all closed, PipeWire takes it back.")
+    print("Names are program names as in ps or top. Turn off with: k7ctl exclusive auto off")
+    return 0
+
+
 def cmd_exclusive(args) -> int:
     a = args.action
+    if a != "auto" and args.players:
+        return _err(f"unexpected argument: {args.players[0]} (player names go after 'auto')")
     try:
+        if a == "_watch":
+            return exclusive.run_watcher()
+        if a == "auto":
+            return cmd_exclusive_auto(args.players)
         if a == "on":
             if not device.find():
                 return _no_k7()
@@ -446,7 +482,10 @@ def cmd_exclusive(args) -> int:
     except RuntimeError as e:
         return _err(str(e))
     s = snapshot.take(with_volume=False)
-    print(f"Exclusive: {'on (PipeWire released it)' if s.exclusive else 'off (PipeWire uses it)'}")
+    print(f"Exclusive: {'on (PipeWire released it)' if s.exclusive else 'off (PipeWire uses it)'}"
+          + (", turned on automatically" if s.exclusive and exclusive.started_automatically() else ""))
+    watched = exclusive.auto_players()
+    print(f"Automatic: {'on for ' + ', '.join(watched) if watched else 'off'}")
     if s.direct:
         print(f"Used directly by: {s.direct}")
     return 0
@@ -550,6 +589,7 @@ def build_parser() -> argparse.ArgumentParser:
     eo.add_argument("profile", nargs="?")
     esub.add_parser("off", help="turn EQ off")
     esub.add_parser("toggle", help="turn EQ on or off")
+    esub.add_parser("next", help="switch to the next saved profile (for a keyboard shortcut)")
     esub.add_parser("_run")  # used by the systemd service
     e.set_defaults(func=cmd_eq)
 
@@ -575,7 +615,10 @@ def build_parser() -> argparse.ArgumentParser:
     rs.set_defaults(func=cmd_resample)
 
     ex = sub.add_parser("exclusive", help="release the DAC from PipeWire for direct players (native DSD)")
-    ex.add_argument("action", nargs="?", choices=["on", "off", "status"], default="status")
+    ex.add_argument("action", nargs="?", choices=["on", "off", "status", "auto", "_watch"],
+                    default="status", metavar="{on,off,status,auto}")
+    ex.add_argument("players", nargs="*",
+                    help="with auto: players to release it for while they run (or 'off')")
     ex.set_defaults(func=cmd_exclusive)
 
     dv = sub.add_parser("devices", help="list USB sound cards (to use another DAC)")

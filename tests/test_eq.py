@@ -141,3 +141,17 @@ def test_daemon_follows_renamed_k7(tmp_path, monkeypatch):
     assert 'target.object = "k7.2"' in started[0]
     assert 'target.object = "k7"' in started[1]
     assert len(terminated) >= 1
+
+
+def test_next_profile(xdg):
+    import pytest
+    with pytest.raises(eq.EqError):
+        eq.next_profile()
+    for name in ("b", "A", "c"):
+        eq.profile_path(name).parent.mkdir(parents=True, exist_ok=True)
+        eq.profile_path(name).write_text("Preamp: -1 dB\n")
+    assert eq.next_profile() == "A"          # nothing selected: the first
+    eq.save_state(profile="A")
+    assert eq.next_profile() == "b"
+    eq.save_state(profile="c")
+    assert eq.next_profile() == "A"          # wraps around

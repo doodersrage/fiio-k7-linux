@@ -47,3 +47,18 @@ def test_diag_report_runs(monkeypatch, xdg):
     for section in ("## k7ctl", "## USB sound cards", "## Device", "## PipeWire", "## EQ service"):
         assert section in text
     assert "not connected" in text
+
+
+def test_exclusive_auto_cli(xdg, monkeypatch, capsys):
+    from k7ctl import cli, exclusive
+    got = []
+    monkeypatch.setattr(exclusive, "set_auto_players", lambda p: got.append(p) or p)
+    assert cli.main(["exclusive", "auto", "strawberry,", "mpd"]) == 0
+    assert got == [["strawberry", "mpd"]]
+    assert cli.main(["exclusive", "auto", "off"]) == 0
+    assert got[-1] == []
+    assert cli.main(["exclusive", "on", "mpd"]) == 1
+    assert "after 'auto'" in capsys.readouterr().err
+    monkeypatch.setattr(exclusive, "auto_players", lambda: [])
+    assert cli.main(["exclusive", "auto"]) == 0
+    assert "off" in capsys.readouterr().out

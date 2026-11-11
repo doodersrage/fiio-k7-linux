@@ -26,7 +26,7 @@ _k7ctl() {
         rates)     [ "$pos" -eq 1 ] && COMPREPLY=($(compgen -W "enable disable status" -- "$cur")) ;;
         latency)   [ "$pos" -eq 1 ] && COMPREPLY=($(compgen -W "default stable low-latency" -- "$cur")) ;;
         keepawake) COMPREPLY=($(compgen -W "on off status --no-restart" -- "$cur")) ;;
-        exclusive) [ "$pos" -eq 1 ] && COMPREPLY=($(compgen -W "on off status" -- "$cur")) ;;
+        exclusive) [ "$pos" -eq 1 ] && COMPREPLY=($(compgen -W "on off status auto" -- "$cur")) ;;
         crossfeed) [ "$pos" -eq 1 ] && COMPREPLY=($(compgen -W "off light medium strong" -- "$cur")) ;;
         resample)  COMPREPLY=($(compgen -W "default high max --restart" -- "$cur")) ;;
         setup)     COMPREPLY=($(compgen -W "--yes -y --help" -- "$cur")) ;;
@@ -36,7 +36,7 @@ _k7ctl() {
             COMPREPLY=($(compgen -W "auto $ids" -- "$cur")) ;;
         eq)
             if [ "$pos" -eq 1 ]; then
-                COMPREPLY=($(compgen -W "status list search get import remove on off toggle" -- "$cur"))
+                COMPREPLY=($(compgen -W "status list search get import remove on off toggle next" -- "$cur"))
                 return
             fi
             case ${words[ci + 1]} in

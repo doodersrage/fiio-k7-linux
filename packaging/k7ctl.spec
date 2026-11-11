@@ -3,7 +3,7 @@
 %global srcname fiio-k7-linux
 
 Name:           k7ctl
-Version:        0.4.0
+Version:        0.5.0
 Release:        1%{?dist}
 Summary:        FiiO K7 DAC/amp status and bit-perfect setup for PipeWire
 License:        MIT
@@ -62,6 +62,10 @@ QT_QPA_PLATFORM=offscreen %{python3} -m pytest -q -p no:cacheprovider tests
 %{_datadir}/fish/vendor_completions.d/k7ctl.fish
 
 %changelog
+* Wed Nov 11 2026 Robert McDowell <doodersrage@gmail.com> - 0.5.0-1
+- Automatic exclusive mode while chosen players run
+- eq next: switch to the next saved EQ profile
+
 * Wed Nov 04 2026 Robert McDowell <doodersrage@gmail.com> - 0.4.0-1
 - Headphone crossfeed (bs2b presets, centred sound unchanged)
 - Resampler quality presets for when rates have to be converted

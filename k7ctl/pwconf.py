@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 HEADER = "# Written by k7ctl (https://github.com/doodersrage/fiio-k7-linux).\n"
@@ -86,3 +87,48 @@ def systemctl_user(*args: str) -> bool:
     except (OSError, subprocess.TimeoutExpired):
         return False
     return r.returncode == 0
+
+
+# ----------------------------------------------------- systemd user services
+
+def unit_path(name: str) -> Path:
+    return config_home() / "systemd" / "user" / name
+
+
+def render_unit(description: str, k7ctl_args: str, undo: str) -> str:
+    """A user service that runs `python -m k7ctl <args>` alongside PipeWire."""
+    pkg_parent = Path(__file__).resolve().parent.parent
+    return f"""\
+# Written by k7ctl. Remove with: {undo}
+[Unit]
+Description={description}
+After=pipewire.service wireplumber.service
+BindsTo=pipewire.service
+
+[Service]
+Environment=PYTHONPATH={pkg_parent}
+ExecStart={sys.executable} -m k7ctl {k7ctl_args}
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=pipewire.service
+"""
+
+
+def install_service(name: str, unit: str) -> bool:
+    """Write, enable and (re)start a user service. Returns whether it started."""
+    path = unit_path(name)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(unit)
+    systemctl_user("daemon-reload")
+    systemctl_user("enable", name)
+    return systemctl_user("restart", name)
+
+
+def remove_service(name: str) -> None:
+    systemctl_user("disable", "--now", name)
+    path = unit_path(name)
+    if path.is_file():
+        path.unlink()
+        systemctl_user("daemon-reload")

@@ -15,7 +15,7 @@ Terminal=false
 Categories=AudioVideo;Audio;Mixer;
 Keywords=fiio;k7;dac;sample rate;bit-perfect;eq;equalizer;autoeq;headphones;
 StartupNotify=true
-Actions=status;eq-toggle;setup;tray;
+Actions=status;eq-toggle;eq-next;setup;tray;
 
 [Desktop Action status]
 Name=What's playing?
@@ -30,6 +30,13 @@ Name[fr]=Égaliseur de casque on/off
 Name[es]=Ecualizador de auriculares sí/no
 Name[de]=Kopfhörer-EQ an/aus
 Exec=k7ctl --notify eq toggle
+
+[Desktop Action eq-next]
+Name=Next headphone EQ profile
+Name[fr]=Profil d’égaliseur suivant
+Name[es]=Siguiente perfil de ecualizador
+Name[de]=Nächstes Kopfhörer-EQ-Profil
+Exec=k7ctl --notify eq next
 
 [Desktop Action setup]
 Name=Bit-perfect setup

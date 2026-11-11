@@ -226,7 +226,14 @@ class Window(W.QMainWindow):
         form.addRow(tr("Direct players:"), self.excl_cb)
         form.addRow(hint(tr("For native DSD: PipeWire can't send DSD, so players like MPD or Strawberry need "
                          "the K7 to themselves (ALSA device hw:CARD=K7). While released, other apps play "
-                         "through another output. It stays released until you untick this.")))
+                         "through another output.")))
+        self.auto_excl = W.QLineEdit()
+        self.auto_excl.setPlaceholderText(tr("e.g. strawberry mpd"))
+        self.auto_excl.setClearButtonEnabled(True)
+        self.auto_excl.editingFinished.connect(self.set_auto_exclusive)
+        form.addRow(tr("Release automatically for:"), self.auto_excl)
+        form.addRow(hint(tr("Program names as in ps or top. The K7 is released while one of them runs and "
+                         "PipeWire takes it back when they've all closed. Leave empty to only do it by hand.")))
 
         self.latency_combo = W.QComboBox()
         for name, (v, desc) in latency.PRESETS.items():
@@ -416,6 +423,8 @@ class Window(W.QMainWindow):
         settings_now = settings.load()
         self._set(self.notify_rate_cb, bool(settings_now["notify_rate"]))
         self._set(self.notify_res_cb, bool(settings_now["notify_resample"]))
+        if not self.auto_excl.hasFocus():
+            self.auto_excl.setText(" ".join(settings_now["auto_exclusive"]))
         if not k7:
             self.subtitle.setText(tr("Not connected. Plug in the K7 and switch it to USB input.") if is_k7
                                   else tr("Not connected ({device}).").format(device=device.target_id()))
@@ -588,6 +597,7 @@ class Window(W.QMainWindow):
         self.eq_cb.setEnabled(not busy and connected and (has_profiles or self.eq_cb.isChecked()))
         self.crossfeed_combo.setEnabled(not busy and connected)
         self.resample_combo.setEnabled(not busy)
+        self.auto_excl.setEnabled(not busy)
         self.profile_combo.setEnabled(not busy and has_profiles)
         self.remove_btn.setEnabled(not busy and has_profiles)
         self.import_btn.setEnabled(not busy)
@@ -657,6 +667,19 @@ class Window(W.QMainWindow):
             self.act(tr("Releasing the K7 from PipeWire"), exclusive.enable, "{}")
         else:
             self.act(tr("Giving the K7 back to PipeWire"), exclusive.disable, "{}")
+
+    def set_auto_exclusive(self):
+        players = exclusive.parse_players(self.auto_excl.text())
+        if players == exclusive.auto_players():
+            return
+        if players:
+            self.act(tr("Watching for {players}").format(players=", ".join(players)),
+                     lambda: exclusive.set_auto_players(players),
+                     tr("The K7 is released while any of these runs: {players}.").format(
+                         players=", ".join(players)))
+        else:
+            self.act(tr("Turning automatic release off"), lambda: exclusive.set_auto_players([]),
+                     tr("Automatic release is off."))
 
     def set_crossfeed(self, _index: int):
         name = self.crossfeed_combo.currentData()

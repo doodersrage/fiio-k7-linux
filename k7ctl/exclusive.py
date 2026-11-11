@@ -9,17 +9,26 @@ device and its output disappears, so apps use another output meanwhile.
 "Exclusive off" restores the previous profile and makes the DAC the default
 output again if it was before. WirePlumber remembers profiles, so the DAC
 stays released (also after replugging or a reboot) until exclusive is off.
+
+Automatic mode: a user service (k7ctl-exclusive.service) watches for the
+players you name, turns exclusive on when one starts and off again when the
+last one closes. It only undoes what it did itself: if you turn exclusive on
+by hand it stays on, and if you turn it off while a player runs it stays off.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
+import sys
+import time
 from pathlib import Path
 
-from . import device, pipewire, pwconf
+from . import device, pipewire, pwconf, settings
 
 OFF = "off"
+SERVICE = "k7ctl-exclusive.service"
 
 
 def state_path() -> Path:
@@ -67,8 +76,10 @@ def _set_profile(dev_id: int, index: int) -> bool:
     return pipewire._run(["wpctl", "set-profile", str(dev_id), str(index)]) is not None
 
 
-def enable() -> str:
-    """Release the DAC. Returns a message; raises RuntimeError if it can't."""
+def enable(auto: bool = False) -> str:
+    """Release the DAC. Returns a message; raises RuntimeError if it can't.
+
+    auto: the watcher did it, so the watcher may undo it."""
     d = pipewire.dump()
     if not d:
         raise RuntimeError("PipeWire isn't running (pw-dump failed)")
@@ -79,7 +90,10 @@ def enable() -> str:
         return "Already released."
     if OFF not in dev["profiles"]:
         raise RuntimeError("the device has no 'off' profile")
-    _save(profile=dev["profile"], was_default=pipewire.k7_is_default(d))
+    state = {"profile": dev["profile"], "was_default": pipewire.k7_is_default(d)}
+    if auto:
+        state["auto"] = True
+    _save(**state)
     if not _set_profile(dev["id"], dev["profiles"][OFF]):
         raise RuntimeError("wpctl set-profile failed")
     return (f"PipeWire released the {device.display_name()}. Players can now use "
@@ -137,3 +151,139 @@ def direct_user(card_index: int, proc: Path = Path("/proc")) -> str | None:
         return None
     return f"{comm} (pid {pid})"
 
+
+
+def started_automatically() -> bool:
+    """Whether exclusive mode is on because the watcher turned it on."""
+    return bool(_load().get("auto"))
+
+
+# ------------------------------------------------------------ automatic mode
+
+def running_players(names, proc: Path = Path("/proc")) -> set[str]:
+    """Which of the named programs are running (names as in ps/top, any case)."""
+    want = {n.strip().lower() for n in names if n.strip()}
+    found: set[str] = set()
+    if not want:
+        return found
+    try:
+        pids = [p for p in proc.iterdir() if p.name.isdigit()]
+    except OSError:
+        return found
+    for p in pids:
+        try:
+            comm = (p / "comm").read_text().strip().lower()
+        except OSError:
+            continue
+        names_of = {comm}
+        try:
+            argv0 = (p / "cmdline").read_bytes().split(b"\0", 1)[0].decode(errors="replace")
+        except OSError:
+            argv0 = ""
+        if argv0:
+            names_of.add(os.path.basename(argv0).lower())
+        found |= names_of & want
+        # the kernel cuts comm to 15 characters
+        found |= {w for w in want if len(w) > 15 and comm == w[:15]}
+    return found
+
+
+class Watcher:
+    """Turns exclusive mode on while a named player runs. Call tick() regularly."""
+
+    def __init__(self, find=running_players):
+        self.find = find
+        self.pending = True     # the next time a player is seen, release the DAC
+
+    def tick(self, players) -> str | None:
+        """Check once. Returns a message when it changed something."""
+        running = self.find(players)
+        if running:
+            if not self.pending:
+                return None
+            if is_on():
+                self.pending = False    # already released (by hand): not ours to undo
+                return None
+            try:
+                enable(auto=True)
+            except RuntimeError:
+                return None             # e.g. the DAC is unplugged: try again next time
+            self.pending = False
+            return f"{', '.join(sorted(running))} started: released the {device.display_name()}"
+        self.pending = True
+        if started_automatically():
+            try:
+                if is_on():
+                    disable()
+                    return f"No player running: PipeWire uses the {device.display_name()} again"
+                _save()   # turned off by hand meanwhile
+            except RuntimeError:
+                return None
+        return None
+
+
+def run_watcher(poll: float = 2.0) -> int:
+    """Entry point for the service."""
+    import signal
+    stopping = False
+
+    def stop(*_):
+        nonlocal stopping
+        stopping = True
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    w = Watcher()
+    while not stopping:
+        players = auto_players()
+        if not players:
+            print("k7ctl exclusive: no players to watch", file=sys.stderr)
+            return 0
+        msg = w.tick(players)
+        if msg:
+            print(f"k7ctl exclusive: {msg}", flush=True)
+        for _ in range(int(poll * 10)):
+            if stopping:
+                break
+            time.sleep(0.1)
+    return 0
+
+
+def auto_players() -> list[str]:
+    players = settings.get("auto_exclusive")
+    return [str(p) for p in players] if isinstance(players, list) else []
+
+
+def parse_players(text: str) -> list[str]:
+    """'strawberry, mpd  audacious' -> ['strawberry', 'mpd', 'audacious']."""
+    out: list[str] = []
+    for n in re.split(r"[,\s]+", text):
+        if n and n.lower() not in (x.lower() for x in out):
+            out.append(n)
+    return out
+
+
+def unit_path() -> Path:
+    return pwconf.unit_path(SERVICE)
+
+
+def render_unit() -> str:
+    return pwconf.render_unit("k7ctl automatic exclusive mode", "exclusive _watch",
+                              "k7ctl exclusive auto off")
+
+
+def watcher_running() -> bool:
+    return pwconf.systemctl_user("is-active", "--quiet", SERVICE)
+
+
+def set_auto_players(players: list[str]) -> list[str]:
+    """Watch these players (an empty list turns automatic mode off)."""
+    settings.set(auto_exclusive=list(players))
+    if players:
+        if not pwconf.install_service(SERVICE, render_unit()):
+            raise RuntimeError(f"couldn't start {SERVICE}; see: journalctl --user -u {SERVICE}")
+    else:
+        pwconf.remove_service(SERVICE)
+        if started_automatically() and is_on():
+            disable()
+    return list(players)

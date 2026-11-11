@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- **Automatic exclusive mode**: `k7ctl exclusive auto strawberry mpd` (also in the window) releases the K7 while
+  one of those players runs and gives it back to PipeWire when they've all closed. It only undoes what it did
+  itself, so turning exclusive on or off by hand still wins.
+- `k7ctl eq next` switches to the next saved EQ profile, for a keyboard shortcut when you change headphones
+  (also a launcher action, "Next headphone EQ profile").
+
 ## 0.4.0
 
 - **Crossfeed** for headphones: `k7ctl crossfeed light|medium|strong|off` (also in the window and tray), the classic

@@ -1,3 +1,10 @@
+k7ctl (0.5.0) unstable; urgency=medium
+
+  * Automatic exclusive mode while chosen players run.
+  * eq next: switch to the next saved EQ profile.
+
+ -- Robert McDowell <doodersrage@gmail.com>  Wed, 11 Nov 2026 13:18:31 -0500
+
 k7ctl (0.4.0) unstable; urgency=medium
 
   * Headphone crossfeed (bs2b presets, centred sound unchanged).

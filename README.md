@@ -100,10 +100,12 @@ k7ctl tray       # tray icon: click it to open the window; "Start at login" is i
 | `k7ctl eq get "<headphone>" [--source …] [--on]` | Download a profile (and turn EQ on with it). |
 | `k7ctl eq import <file>` | Import an Equalizer APO / `ParametricEQ.txt` file. |
 | `k7ctl eq on [profile]` / `off` / `toggle` | Turn the EQ on or off. `eq list`, `eq status`, `eq remove` manage profiles. |
+| `k7ctl eq next` | Switch to the next saved profile, for when you change headphones (bind it to a shortcut). |
 | `k7ctl crossfeed [light\|medium\|strong\|off]` | Headphone crossfeed (see below). |
 | `k7ctl resample [default\|high\|max] [--restart]` | Resampler quality, for when rates have to be converted (see below). |
 | `k7ctl firmware [--open]` | Installed firmware version and how to update it; `--open` opens FiiO's download page. |
 | `k7ctl exclusive on` / `off` | Release the K7 from PipeWire for a player that uses it directly (native DSD). |
+| `k7ctl exclusive auto <player>…` / `off` | Do that automatically while those players run. |
 | `k7ctl devices` / `k7ctl use <id\|auto>` | List USB sound cards / use another DAC (see below). |
 | `k7ctl diag` | A diagnostics report to paste into bug reports. |
 | `k7ctl --notify <command>` | Show the result as a desktop notification (for shortcuts). |
@@ -277,6 +279,17 @@ Also in the tray menu (*Release for direct players*) and the window. Without it 
 "Device or resource busy" whenever PipeWire is using the K7 (always, with keep-awake on). While released,
 `k7ctl status` shows which program is using the K7, e.g. `Used by: mpd (pid 1234)`. WirePlumber remembers the
 setting, so the K7 stays released after a reboot until you turn exclusive off.
+
+To have it done for you, name the players (program names as in `ps` or `top`):
+
+```sh
+k7ctl exclusive auto strawberry deadbeef   # released while either runs, back to PipeWire when both close
+k7ctl exclusive auto off
+```
+
+Also in the window (*Release automatically for*). It only undoes what it did itself: if you turn exclusive off by
+hand while a player runs, it stays off until the player is closed and started again. MPD usually runs all the time
+as a service, so naming it keeps the K7 released for as long as MPD runs.
 
 MPD example:
 

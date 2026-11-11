@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import __version__, device, eq, keepawake, latency, rates, settings, snapshot
+from . import __version__, device, eq, exclusive, keepawake, latency, rates, settings, snapshot
 
 
 def _run(args: list[str], limit: int = 4000) -> str:
@@ -96,7 +96,7 @@ def report() -> str:
 
     parts.append(_section("k7ctl settings", _file(settings.path())))
     for p in (rates.conf_path(), latency.conf_path(), keepawake.conf_path(),
-              eq.state_path(), eq.unit_path()):
+              eq.state_path(), eq.unit_path(), exclusive.state_path(), exclusive.unit_path()):
         parts.append(_section(str(p).replace(str(Path.home()), "~"), _file(p)))
     profiles = eq.list_profiles()
     parts.append(_section("EQ profiles", ", ".join(profiles) or "(none)"))

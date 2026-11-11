@@ -185,6 +185,17 @@ def selected_profile() -> str | None:
     return profiles[0] if len(profiles) == 1 else None
 
 
+def next_profile() -> str:
+    """The saved profile after the selected one (wrapping around)."""
+    profiles = list_profiles()
+    if not profiles:
+        raise EqError('no saved profiles; get one with: k7ctl eq search "<headphone name>"')
+    sel = selected_profile()
+    if sel not in profiles:
+        return profiles[0]
+    return profiles[(profiles.index(sel) + 1) % len(profiles)]
+
+
 # ------------------------------------------------------------------- AutoEQ
 
 @dataclass
@@ -423,27 +434,11 @@ def runtime_conf_path() -> Path:
 
 
 def unit_path() -> Path:
-    return pwconf.config_home() / "systemd" / "user" / SERVICE
+    return pwconf.unit_path(SERVICE)
 
 
 def render_unit() -> str:
-    pkg_parent = Path(__file__).resolve().parent.parent
-    return f"""\
-# Written by k7ctl. Remove with: k7ctl eq off
-[Unit]
-Description=k7ctl headphone EQ
-After=pipewire.service wireplumber.service
-BindsTo=pipewire.service
-
-[Service]
-Environment=PYTHONPATH={pkg_parent}
-ExecStart={sys.executable} -m k7ctl eq _run
-Restart=on-failure
-RestartSec=3
-
-[Install]
-WantedBy=pipewire.service
-"""
+    return pwconf.render_unit("k7ctl headphone EQ", "eq _run", "k7ctl eq off")
 
 
 def _k7_sink_name() -> str | None:
@@ -543,12 +538,7 @@ def _start(make_default: bool = True) -> None:
     """(Re)start the processing service with the current state."""
     if not shutil.which("systemctl"):
         raise EqError("the EQ runs as a systemd user service, and systemctl wasn't found")
-    unit = unit_path()
-    unit.parent.mkdir(parents=True, exist_ok=True)
-    unit.write_text(render_unit())
-    pwconf.systemctl_user("daemon-reload")
-    pwconf.systemctl_user("enable", SERVICE)
-    if not pwconf.systemctl_user("restart", SERVICE):
+    if not pwconf.install_service(SERVICE, render_unit()):
         raise EqError(f"couldn't start {SERVICE}; see: journalctl --user -u {SERVICE}")
     save_state(default=make_default)
     nid = _wait_for_node()
@@ -562,11 +552,7 @@ def _start(make_default: bool = True) -> None:
 def _stop() -> None:
     d = pipewire.dump()
     eq_was_default = bool(d) and pipewire.parse_default_sink(d) == NODE
-    pwconf.systemctl_user("disable", "--now", SERVICE)
-    unit = unit_path()
-    if unit.is_file():
-        unit.unlink()
-        pwconf.systemctl_user("daemon-reload")
+    pwconf.remove_service(SERVICE)
     if eq_was_default:
         pipewire.wait_and_set_default(None, timeout=5)
 
